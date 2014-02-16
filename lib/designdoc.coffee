@@ -1,9 +1,16 @@
-{Doc} = require './doc.coffee'
+Q = require 'q'
+Doc = require './doc.coffee'
 
 design_doc =
     _id: '_design/tournament'
     language: 'coffeescript'
     views:
+        tournamentsByStart:
+            map: '''
+                (doc) ->
+                    if doc.type == 'tournament'
+                        emit doc.event_start_timestamp, null
+            '''
         listsByTournamentParticipant:
             map: '''
                 (doc) ->
@@ -30,9 +37,11 @@ design_doc =
             '''
 
 exports.createViews = (db) ->
-    Doc.saveRaw db, design_doc
+    Doc.use db
+
+    Doc.saveRaw design_doc
     .fail ->
-        Doc.fetchDoc db, design_doc._id
+        Doc.fetchDoc design_doc._id
         .then (old_doc) ->
             design_doc._rev = old_doc._rev
-            Doc.saveRaw db, design_doc
+            Doc.saveRaw design_doc

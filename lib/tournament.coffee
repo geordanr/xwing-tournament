@@ -1,14 +1,17 @@
 Q = require 'q'
 uuid = require 'node-uuid'
 
-{Doc} = require './doc'
+Doc = require './doc'
 
-exports.Tournament =
-    _type: 'tournament'
-    _properties: [ 'name', 'description', 'organizer_email', 'organizer_user_id' ]
+_type = 'tournament'
+_properties = [ 'name', 'event_start_timestamp', 'event_end_timestamp', 'description', 'organizer_email', 'organizer_user_id' ]
 
-    save: (db, doc) ->
-        Doc.saveDoc db, doc, exports.Tournament._type, exports.Tournament._properties
+exports.use = (db) ->
+    exports.db = db
+    Doc.use exports.db
 
-    fetch: (db, id) ->
-        Doc.fetchDoc db, id, exports.Tournament._type
+exports.save = (doc) ->
+    Doc.saveDoc doc, _type, _properties
+
+exports.fetch = (id) ->
+    Doc.fetchDoc id, _type
