@@ -1,0 +1,1 @@
+{"_id":"match-1","_rev":"2-841d23f2ea69929033e4a5a132fd88c7","tournament_id":"tournament-1","round":1,"participants":[{"participant_id":"participant-1","list_id":"list-participant-1-1"},{"participant_id":"participant-3","list_id":"list-participant-3-1"}],"finished":true,"winner":"participant-3","result":"Modified Match Win","type":"match"}

@@ -1,31 +1,57 @@
+Q = require 'q'
 uuid = require 'node-uuid'
 
-class exports.Doc
-    constructor: (args) ->
-        @_id = args._id ? "#{@type}-#{uuid.v4()}"
-        @_rev = args._rev ? null
-        @data =
-            type: @type
-        for key in @doc_keys
-            @data[key] = args[key]
+exports.Doc =
+    saveRaw: (db, doc) ->
+        deferred = Q.defer()
 
-    @fetch: (db, id, cls, cb) ->
-        # Provide class to instantiate in cls
-        # cb called with new instance
+        db.insert doc, (err, body) ->
+            if err
+                deferred.reject err
+            else
+                deferred.resolve
+                    id: body.id
+                    rev: body.rev
+
+        deferred.promise
+
+    saveDoc: (db, doc, type, required_properties=[]) ->
+        deferred = Q.defer()
+
+        for property in required_properties
+            if property not of doc
+                deferred.reject new Error "Required property '#{property}' missing"
+        doc._id = "#{type}-#{uuid.v4()}" unless '_id' of doc
+        if doc.type?
+            if doc.type != type
+                deferred.reject new Error "Attempt to save doc with type #{type} when it already is of type #{doc.type}"
+        else
+            doc.type = type
+
+        deferred.resolve exports.Doc.saveRaw(db, doc)
+
+        deferred.promise
+
+    fetchDoc: (db, id, assert_type=null) ->
+        deferred = Q.defer()
+
         db.get id, (err, doc) ->
             if err
-                console.log "Error fetching ID #{id}: #{err}"
+                deferred.reject err
+            else if assert_type? and assert_type != doc.type
+                deferred.reject new Error "Expected doc type #{assert_type} but got #{doc.type}"
             else
-                cb(new cls doc)
+                deferred.resolve doc
 
-    saveTo: (db, cb) ->
-        # Runs cb when done
-        doc =
-            _id: @_id
-            type: @type
-        doc._rev = @_rev if @_rev?
+        deferred.promise
 
-        for k, v of @data
-            doc[k] = v
+    destroyDoc: (db, id, rev) ->
+        deferred = Q.defer()
 
-        db.insert doc, cb
+        db.destroy id, rev, (err, body) ->
+            if err
+                deferred.reject err
+            else
+                deferred.resolve body
+
+        deferred.promise

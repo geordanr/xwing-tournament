@@ -5,12 +5,17 @@
     "private": "true",
     "dependencies": {
         "coffee-script": "1.7.x",
+        "chai-as-promised": "4.1.x",
         "express": "3.4.x",
+        "jade": "1.1.x",
         "mocha": "1.17.x",
+        "mocha-as-promised": "2.0.x",
         "nano": "4.4.x",
         "node-uuid": "1.4.x",
-        "jade": "1.1.x",
-        "should": "3.1.x",
+        "q": "1.0.x",
         "uglify-js": "2.4.x"
+    },
+    "scripts": {
+        "test": "mocha --compilers coffee:coffee-script/register"
     }
 }

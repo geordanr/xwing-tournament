@@ -1,4 +1,7 @@
+{Doc} = require './doc.coffee'
+
 design_doc =
+    _id: '_design/tournament'
     language: 'coffeescript'
     views:
         listsByTournamentParticipant:
@@ -25,3 +28,11 @@ design_doc =
                         emit doc.tournament_id,
                         email: doc.email
             '''
+
+exports.createViews = (db) ->
+    Doc.saveRaw db, design_doc
+    .fail ->
+        Doc.fetchDoc db, design_doc._id
+        .then (old_doc) ->
+            design_doc._rev = old_doc._rev
+            Doc.saveRaw db, design_doc
