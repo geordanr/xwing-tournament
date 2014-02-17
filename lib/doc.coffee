@@ -28,7 +28,7 @@ exports.saveWithRetries = (doc, max_retries=5) ->
             deferred.resolve res
         .fail (err) ->
             if max_retries > 0
-                console.warn "Error saving doc: '#{err}', #{max_retries} retries remaining"
+                console.warn "Error saving doc #{doc._id}: '#{err}', #{max_retries} retries remaining"
                 setTimeout ->
                     exports.fetchDoc doc._id
                     .then (res) ->
@@ -36,12 +36,12 @@ exports.saveWithRetries = (doc, max_retries=5) ->
                         retry_func deferred, doc, max_retries - 1
                     .fail (err) ->
                         # Offending doc is gone
-                        console.warn "Conflicting document is gone, saving with no _rev"
+                        console.warn "Conflicting document is gone for #{doc._id}, saving with no _rev"
                         delete doc._rev
                         retry_func deferred, doc, max_retries - 1
                 , 100
             else
-                console.error "Error saving doc: #{err} (no more retries)"
+                console.error "Error saving doc #{doc._id}: #{err} (no more retries)"
                 deferred.reject err
 
     retry_func deferred, doc, max_retries
