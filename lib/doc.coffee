@@ -17,6 +17,37 @@ exports.saveRaw = (doc) ->
 
     deferred.promise
 
+exports.saveWithRetries = (doc, max_retries=5) ->
+    # Saves doc, refetching doc to get _rev and retrying if necessary
+    deferred = Q.defer()
+    max_retries = parseInt max_retries
+
+    retry_func = (deferred, doc, max_retries) ->
+        exports.saveRaw doc
+        .then (res) ->
+            deferred.resolve res
+        .fail (err) ->
+            if max_retries > 0
+                console.warn "Error saving doc: '#{err}', #{max_retries} retries remaining"
+                setTimeout ->
+                    exports.fetchDoc doc._id
+                    .then (res) ->
+                        doc._rev = res._rev
+                        retry_func deferred, doc, max_retries - 1
+                    .fail (err) ->
+                        # Offending doc is gone
+                        console.warn "Conflicting document is gone, saving with no _rev"
+                        delete doc._rev
+                        retry_func deferred, doc, max_retries - 1
+                , 100
+            else
+                console.error "Error saving doc: #{err} (no more retries)"
+                deferred.reject err
+
+    retry_func deferred, doc, max_retries
+
+    deferred.promise
+
 exports.saveDoc = (doc, type, required_properties=[]) ->
     deferred = Q.defer()
 
@@ -30,7 +61,7 @@ exports.saveDoc = (doc, type, required_properties=[]) ->
     else
         doc.type = type
 
-    deferred.resolve exports.saveRaw(doc)
+    deferred.resolve exports.saveWithRetries(doc)
 
     deferred.promise
 

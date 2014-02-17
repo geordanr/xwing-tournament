@@ -37,11 +37,24 @@ design_doc =
             '''
 
 exports.createViews = (db) ->
+    deferred = Q.defer()
+
     Doc.use db
 
-    Doc.saveRaw design_doc
-    .fail ->
+    Doc.saveWithRetries design_doc
+    .then (res) ->
+        deferred.resolve res
+    .fail (err) ->
+        console.error "Failed to save design doc to #{db.config.db}: #{err}"
         Doc.fetchDoc design_doc._id
         .then (old_doc) ->
+            console.log "Fetched old design doc"
+            console.dir old_doc
             design_doc._rev = old_doc._rev
-            Doc.saveRaw design_doc
+            console.log "Saving design doc with new rev #{design_doc._rev}"
+            deferred.resolve Doc.saveRaw design_doc
+        .fail (err) ->
+            console.error "Failed to fetch design doc #{design_doc._id}"
+            deferred.reject err
+
+    deferred.promise
