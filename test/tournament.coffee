@@ -7,32 +7,33 @@ Doc = require '../lib/doc'
 Tournament = require '../lib/tournament'
 {createViews} = require '../lib/designdoc'
 
-db = null
+describe.only "Tournament", ->
 
-beforeEach (done) ->
-    dbname = "xwing-tournament-test-#{uuid.v4()}"
-    #console.log "Create #{dbname}"
-    nano.db.create dbname, (err, body) ->
-        if err
-            throw new Error "Error creating database #{dbname}: #{err}"
-        else
-            #console.log "Created #{dbname}"
-            db = nano.use dbname
-            #console.log "Now using #{db.config.db}"
-            Doc.use db
-            Tournament.use db
-            createViews db
-            .fail (err) ->
-                console.error "Error creating CouchDB views: #{err}"
-            .finally ->
-                #console.log "done creating #{db.config.db}"
-                done()
+    beforeEach (done) ->
+        dbname = "xwing-tournament-test-#{uuid.v4()}"
+        #console.log "Create #{dbname}"
+        nano.db.create dbname, (err, body) =>
+            if err
+                throw new Error "Error creating database #{dbname}: #{err}"
+            else
+                #console.log "Created #{dbname}"
+                @db = nano.use dbname
+                #console.log "Now using #{db.config.db}"
+                Doc.use @db
+                createViews()
+                .then (res) =>
+                    console.log "create views for #{@currentTest.title} on #{@db.config.db} ok"
+                    console.dir res
+                .fail (err) =>
+                    console.error "Error creating CouchDB views: #{err}"
+                    throw err
+                .finally =>
+                    done()
 
-afterEach ->
-    #console.log "Destroying #{db.config.db}"
-    nano.db.destroy db.config.db
+    afterEach ->
+        #console.log "Destroying #{db.config.db}"
+        nano.db.destroy @db.config.db
 
-describe "Tournament", ->
     it "should be able to save a new tournament", ->
         tournament =
             name: 'Test tournament'

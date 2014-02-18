@@ -1,10 +1,23 @@
-{Doc} = require './doc'
+Doc = require './doc'
 
-class exports.Participant extends Doc
-    constructor: (args) ->
-        @doc_keys = [ 'tournament_id', 'user_id', 'email', ]
-        @type = 'participant'
-        super args
+_type = 'participant'
+_properties = [
+    'tournament_id'
+    'user_id'
+    'participant_email'
+]
 
-    @fetch: (db, id, cb) ->
-        Doc.fetch db, id, exports.Participant, cb
+exports.enterTournament = (tournament_id, user_id, participant_email) ->
+    # There can be only one tournament entry per user
+    doc =
+        _id: "#{_type}--#{tournament_id}--#{user_id}"
+        tournament_id: tournament_id
+        user_id: user_id
+        participant_email: participant_email
+    Doc.saveDoc doc, _type, _properties
+
+#exports.save = (doc) ->
+#    Doc.saveDoc doc, _type, _properties
+#
+#exports.fetch = (id) ->
+#    Doc.fetchDoc id, _type

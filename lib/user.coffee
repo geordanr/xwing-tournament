@@ -1,14 +1,13 @@
-Q = require 'q'
-uuid = require 'node-uuid'
+Doc = require './doc'
 
-{Doc} = require './doc'
+_type = 'user'
+_properties = [
+    'oauth_strategy'
+    'oauth_id'
+]
 
-exports.User =
-    _type: 'user'
-    _properties: []
+exports.save = (doc) ->
+    Doc.saveDoc doc, _type, _properties
 
-    save: (db, doc) ->
-        Doc.saveDoc db, doc, exports.User._type, exports.User._properties
-
-    fetch: (db, id) ->
-        Doc.fetchDoc db, id, exports.User._type
+exports.fetch = (id) ->
+    Doc.fetchDoc id, _type

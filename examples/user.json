@@ -1,0 +1,5 @@
+{
+    "_id": "user-1",
+    "oauth_strategy": "google",
+    "oauth_id": "12345678"
+}

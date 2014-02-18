@@ -2,6 +2,8 @@ Q = require 'q'
 uuid = require 'node-uuid'
 
 exports.use = (db) ->
+    #console.trace "Doc asked to use #{db.config.db}"
+    throw new Error "No db given" unless db?
     exports.db = db
 
 exports.saveRaw = (doc) ->
@@ -11,6 +13,7 @@ exports.saveRaw = (doc) ->
         if err
             deferred.reject err
         else
+            #console.log "saved doc #{body.id} to #{exports.db.config.db}"
             deferred.resolve
                 id: body.id
                 rev: body.rev
@@ -27,19 +30,23 @@ exports.saveWithRetries = (doc, max_retries=5) ->
         .then (res) ->
             deferred.resolve res
         .fail (err) ->
-            if max_retries > 0
-                console.warn "Error saving doc #{doc._id}: '#{err}', #{max_retries} retries remaining"
-                setTimeout ->
-                    exports.fetchDoc doc._id
-                    .then (res) ->
-                        doc._rev = res._rev
-                        retry_func deferred, doc, max_retries - 1
-                    .fail (err) ->
-                        # Offending doc is gone
-                        console.warn "Conflicting document is gone for #{doc._id}, saving with no _rev"
-                        delete doc._rev
-                        retry_func deferred, doc, max_retries - 1
-                , 100
+            if err.indexOf('Document update conflict') >= 0
+                if max_retries > 0
+                    console.warn "Error saving doc #{doc._id}: '#{err}', #{max_retries} retries remaining"
+                    setTimeout ->
+                        exports.fetchDoc doc._id
+                        .then (res) ->
+                            doc._rev = res._rev
+                            retry_func deferred, doc, (max_retries - 1)
+                        .fail (err) ->
+                            # Offending doc is gone
+                            console.warn "Conflicting document is gone for #{doc._id}, saving with no _rev"
+                            delete doc._rev
+                            retry_func deferred, doc, (max_retries - 1)
+                    , 100
+                else
+                    console.error "Error saving doc #{doc._id}:\n#{err}\nGiving up immediately"
+                    deferred.reject err
             else
                 console.error "Error saving doc #{doc._id}: #{err} (no more retries)"
                 deferred.reject err
@@ -94,6 +101,7 @@ exports.view = (design, view, params={}) ->
 
     exports.db.view design, view, params, (err, body) ->
         if err
+            console.error "error viewing #{design}/#{view}: #{err}"
             deferred.reject err
         else
             deferred.resolve body.rows
