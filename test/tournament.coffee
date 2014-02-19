@@ -1,38 +1,37 @@
 # Run this with mocha
 Q = require 'q'
-nano = require('nano') 'http://localhost:5984'
+nano = require 'nano'
 uuid = require 'node-uuid'
+
+server = nano 'http://localhost:5984'
 
 Doc = require '../lib/doc'
 Tournament = require '../lib/tournament'
 {createViews} = require '../lib/designdoc'
 
-describe.only "Tournament", ->
+describe "Tournament", ->
 
     beforeEach (done) ->
         dbname = "xwing-tournament-test-#{uuid.v4()}"
         #console.log "Create #{dbname}"
-        nano.db.create dbname, (err, body) =>
-            if err
-                throw new Error "Error creating database #{dbname}: #{err}"
-            else
-                #console.log "Created #{dbname}"
-                @db = nano.use dbname
-                #console.log "Now using #{db.config.db}"
-                Doc.use @db
-                createViews()
-                .then (res) =>
-                    console.log "create views for #{@currentTest.title} on #{@db.config.db} ok"
-                    console.dir res
-                .fail (err) =>
-                    console.error "Error creating CouchDB views: #{err}"
-                    throw err
-                .finally =>
-                    done()
+        Q.nfcall server.db.create, dbname
+        .then =>
+            @db = server.use dbname
+            Doc.use @db
+            createViews()
+        .fail (err) =>
+            console.error "Error creating db #{dbname}: #{err}"
+            throw err
+        .finally =>
+            done()
 
-    afterEach ->
-        #console.log "Destroying #{db.config.db}"
-        nano.db.destroy @db.config.db
+    afterEach (done) ->
+        Q.nfcall server.db.destroy, @db.config.db
+        .fail (err) =>
+            console.error "Error destrying db #{@db.config.db}: #{err}"
+            throw err
+        .finally ->
+            done()
 
     it "should be able to save a new tournament", ->
         tournament =

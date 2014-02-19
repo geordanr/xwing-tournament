@@ -9,7 +9,7 @@ exports.use = (db) ->
 exports.saveRaw = (doc) ->
     deferred = Q.defer()
 
-    exports.db.insert doc, (err, body) ->
+    exports.db.insert doc, (err, body, header) ->
         if err
             deferred.reject err
         else
@@ -30,7 +30,7 @@ exports.saveWithRetries = (doc, max_retries=5) ->
         .then (res) ->
             deferred.resolve res
         .fail (err) ->
-            if err.indexOf('Document update conflict') >= 0
+            if err.error == 'conflict'
                 if max_retries > 0
                     console.warn "Error saving doc #{doc._id}: '#{err}', #{max_retries} retries remaining"
                     setTimeout ->
