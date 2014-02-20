@@ -107,4 +107,35 @@ describe "Regular User", ->
 
     it "shows the lists added to a tournament entry"
 
-    it "lists the tournaments entered"
+    it "lists the tournaments entered", ->
+        user_id = null
+        t1_id = null
+        t2_id = null
+        t3_id = null
+
+        promise = Q.all [
+            User.save make_fake_user()
+            Tournament.save make_fake_tournament()
+            Tournament.save make_fake_tournament()
+            Tournament.save make_fake_tournament()
+        ]
+        .spread (user_res, t1_res, t2_res, t3_res) ->
+            user_id = user_res.id
+            t1_id = t1_res.id
+            t2_id = t2_res.id
+            t3_id = t3_res.id
+
+            Q.all [
+                Participant.enterTournament t1_id, user_id
+                Participant.enterTournament t2_id, user_id
+            ]
+        .then ->
+            Q.all [
+                Participant.checkIfEntryExists t1_id, user_id
+                Participant.checkIfEntryExists t2_id, user_id
+                Participant.checkIfEntryExists t3_id, user_id
+            ]
+        .spread (t1_entered, t2_entered, t3_entered) ->
+            [ t1_entered, t2_entered, t3_entered ]
+
+        promise.should.become [true, true, false]
