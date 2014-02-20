@@ -34,7 +34,7 @@ describe "CouchDB Views", ->
         .finally ->
             done()
 
-    it.skip "should imprint views", ->
+    it "should imprint views", ->
         promise = createViews()
         .then (results) ->
             Q.all [
