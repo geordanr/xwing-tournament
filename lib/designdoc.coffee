@@ -41,18 +41,19 @@ exports.createViews = ->
 
     Doc.saveWithRetries design_doc
     .then (res) ->
+        #console.log "saved design_doc to #{Doc.db.config.db}"
         deferred.resolve res
     .fail (err) ->
         console.error "Failed to save design doc to #{Doc.db.config.db}: #{err}"
         Doc.fetchDoc design_doc._id
         .then (old_doc) ->
-            #console.log "Fetched old design doc"
+            #console.log "Fetched old design doc from #{Doc.db.config.db}"
             #console.dir old_doc
             design_doc._rev = old_doc._rev
-            #console.log "Saving design doc with new rev #{design_doc._rev}"
+            #console.log "Saving design doc with new rev #{design_doc._rev} to #{Doc.db.config.db}"
             deferred.resolve Doc.saveRaw design_doc
         .fail (err) ->
-            console.error "Failed to fetch design doc #{design_doc._id}"
+            console.error "Failed to fetch design doc #{design_doc._id} from #{Doc.db.config.db}"
             deferred.reject err
 
     deferred.promise

@@ -11,7 +11,7 @@ Doc = require '../lib/doc'
 describe "CouchDB Views", ->
 
     beforeEach (done) ->
-        dbname = "xwing-tournament-test-#{uuid.v4()}"
+        dbname = "xwing-tournament-test-#{@currentTest.title.toLowerCase().replace /[^a-z0-9]/g, '-'}-#{uuid.v4()}"
         #console.log "Create #{dbname}"
         Q.nfcall server.db.create, dbname
         .then =>
@@ -24,9 +24,12 @@ describe "CouchDB Views", ->
             done()
 
     afterEach (done) ->
+        #console.log "Destroying #{@db.config.db}"
         Q.nfcall server.db.destroy, @db.config.db
+        #.then =>
+        #    console.log "Destroyed #{@db.config.db}"
         .fail (err) =>
-            console.error "Error destrying db #{@db.config.db}: #{err}"
+            console.error "Error destroying db #{@db.config.db}: #{err}"
             throw err
         .finally ->
             done()
