@@ -54,19 +54,38 @@ describe "Regular User", ->
 
     it "should be able to view all tournaments"
 
-    it "should be able to enter a tournament exactly once", ->
+    it "should be able to enter a tournament", ->
+        user_id = null
         tournament_id = null
-        promise = Q.all [
+        rows = Q.all [
             User.save make_fake_user()
             Tournament.save make_fake_tournament()
         ]
         .spread (user_result, tournament_result) ->
+            user_id = user_result.id
             tournament_id = tournament_result.id
-            Participant.enterTournament tournament_id, user_result.id, 'participant@example.com'
+            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
         .then (res) ->
-            Doc.view 'tournament', 'participantsByTournament'#, {key: tournament_id}
-        .fail (err) ->
-            throw new Error err
+            Doc.view 'tournament', 'participantsByTournament', {key: tournament_id}
+
+        rows.should.eventually.have.length 1
+
+    it "should be able to enter a tournament exactly once", ->
+        user_id = null
+        tournament_id = null
+        rows = Q.all [
+            User.save make_fake_user()
+            Tournament.save make_fake_tournament()
+        ]
+        .spread (user_result, tournament_result) ->
+            user_id = user_result.id
+            tournament_id = tournament_result.id
+            Q.all [
+                Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+                Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+            ]
+
+        rows.should.eventually.be.rejectedWith Error
 
     it "should be able to submit a list to a tournament they've entered"
 
