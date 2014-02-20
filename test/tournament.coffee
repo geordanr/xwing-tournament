@@ -9,6 +9,15 @@ Doc = require '../lib/doc'
 Tournament = require '../lib/tournament'
 {createViews} = require '../lib/designdoc'
 
+tournament_properties = [
+    'name'
+    'description'
+    'organizer_user_id'
+    'organizer_email'
+    'event_start_timestamp'
+    'event_end_timestamp'
+]
+
 describe "Tournament", ->
 
     beforeEach (done) ->
@@ -36,7 +45,7 @@ describe "Tournament", ->
         .finally ->
             done()
 
-    it "should be able to save a new tournament", ->
+    it "saves a new tournament", ->
         tournament =
             name: 'Test tournament'
             description: 'Tournament description is here'
@@ -51,7 +60,7 @@ describe "Tournament", ->
             promise.should.eventually.have.property('rev')
         ]
 
-    it "should be able to load a saved tournament", ->
+    it "loads a saved tournament", ->
         tournament =
             name: 'Test tournament'
             description: 'Tournament description is here'
@@ -64,16 +73,9 @@ describe "Tournament", ->
         .then (results) ->
             Doc.fetchDoc results.id
 
-        Q.all [
-            promise.should.eventually.have.property 'name', tournament.name
-            promise.should.eventually.have.property 'description', tournament.description
-            promise.should.eventually.have.property 'organizer_user_id', tournament.organizer_user_id
-            promise.should.eventually.have.property 'organizer_email', tournament.organizer_email
-            promise.should.eventually.have.property 'event_start_timestamp', tournament.event_start_timestamp
-            promise.should.eventually.have.property 'event_end_timestamp', tournament.event_end_timestamp
-        ]
+        Q.all(promise.should.eventually.have.property(property, tournament[property]) for property in tournament_properties)
 
-    it "should be able to save changes to an existing tournament", ->
+    it "saves changes to an existing tournament", ->
         tournament =
             name: 'Test tournament'
             description: 'Tournament description is here'
@@ -97,18 +99,11 @@ describe "Tournament", ->
         .then (results) ->
             Doc.fetchDoc results.id
 
-        Q.all [
-            promise.should.eventually.have.property 'name', new_tournament.name
-            promise.should.eventually.have.property 'description', new_tournament.description
-            promise.should.eventually.have.property 'organizer_user_id', new_tournament.organizer_user_id
-            promise.should.eventually.have.property 'organizer_email', new_tournament.organizer_email
-            promise.should.eventually.have.property 'event_start_timestamp', new_tournament.event_start_timestamp
-            promise.should.eventually.have.property 'event_end_timestamp', new_tournament.event_end_timestamp
-        ]
+        Q.all(promise.should.eventually.have.property(property, new_tournament[property]) for property in tournament_properties)
 
-    it "should be able to delete a tournament"
+    it "deletes a tournament"
 
-    it "should allow browsing of all tournaments", ->
+    it "lists tournaments", ->
         tournament1 =
             name: 'Test tournament 1'
             description: 'First tournament description'
@@ -143,9 +138,94 @@ describe "Tournament", ->
             t1_row.id = t1_result.id
             t2_row.id = t2_result.id
         .then ->
-            Doc.view 'tournament', 'byStartTimestamp'
+            Tournament.getAll 0
 
         Q.allSettled [
             promise.should.eventually.include t1_row
+            promise.should.eventually.include t2_row
+        ]
+
+    it "lists tournaments after a given time", ->
+        tournament1 =
+            name: 'Test tournament 1'
+            description: 'First tournament description'
+            organizer_user_id: 'abc-123'
+            organizer_email: 'organizer@example.com'
+            event_start_timestamp: 111111111
+            event_end_timestamp: 222222222
+
+        tournament2 =
+            name: 'Test tournament 2'
+            description: 'Second tournament description'
+            organizer_user_id: 'xyz-890'
+            organizer_email: 'new-organizer@example.com'
+            event_start_timestamp: 333333333
+            event_end_timestamp: 444444444
+
+        t1_row =
+            id: null
+            key: tournament1.event_start_timestamp
+            value: null
+
+        t2_row =
+            id: null
+            key: tournament2.event_start_timestamp
+            value: null
+
+        promise = Q.all [
+            Tournament.save tournament1
+            Tournament.save tournament2
+        ]
+        .spread (t1_result, t2_result) ->
+            t1_row.id = t1_result.id
+            t2_row.id = t2_result.id
+        .then ->
+            Tournament.getAll 222222222
+
+        Q.allSettled [
+            promise.should.eventually.not.include t1_row
+            promise.should.eventually.include t2_row
+        ]
+
+    it "lists tournaments after now", ->
+        now = parseInt((new Date()).getTime() / 1000)
+        tournament1 =
+            name: 'Test tournament 1'
+            description: 'First tournament description'
+            organizer_user_id: 'abc-123'
+            organizer_email: 'organizer@example.com'
+            event_start_timestamp: now - 86400
+            event_end_timestamp: now - 80000
+
+        tournament2 =
+            name: 'Test tournament 2'
+            description: 'Second tournament description'
+            organizer_user_id: 'xyz-890'
+            organizer_email: 'new-organizer@example.com'
+            event_start_timestamp: now + 86400
+            event_end_timestamp: now + 96400
+
+        t1_row =
+            id: null
+            key: tournament1.event_start_timestamp
+            value: null
+
+        t2_row =
+            id: null
+            key: tournament2.event_start_timestamp
+            value: null
+
+        promise = Q.all [
+            Tournament.save tournament1
+            Tournament.save tournament2
+        ]
+        .spread (t1_result, t2_result) ->
+            t1_row.id = t1_result.id
+            t2_row.id = t2_result.id
+        .then ->
+            Tournament.getAll
+
+        Q.allSettled [
+            promise.should.eventually.not.include t1_row
             promise.should.eventually.include t2_row
         ]

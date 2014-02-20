@@ -87,3 +87,16 @@ describe "Doc", ->
 
         doc.should.eventually.have.property 'type', type
 
+    it "destroys documents", ->
+        id = null
+        rev = null
+
+        res = Doc.saveRaw make_doc()
+        .then (body) ->
+            id = body.id
+            rev = body.rev
+            Doc.destroyDoc id, rev
+        .then ->
+            Doc.fetchDoc id
+
+        res.should.eventually.be.rejectedWith Error

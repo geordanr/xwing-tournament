@@ -58,39 +58,6 @@ describe "Regular User", ->
 
     it "lets users view all tournaments"
 
-    it "lets users enter a tournament", ->
-        user_id = null
-        tournament_id = null
-        rows = Q.all [
-            User.save make_fake_user()
-            Tournament.save make_fake_tournament()
-        ]
-        .spread (user_result, tournament_result) ->
-            user_id = user_result.id
-            tournament_id = tournament_result.id
-            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
-        .then (res) ->
-            Tournament.getParticipants tournament_id
-
-        rows.should.eventually.have.length 1
-
-    it "allows a user to enter a tournament exactly once", ->
-        user_id = null
-        tournament_id = null
-        rows = Q.all [
-            User.save make_fake_user()
-            Tournament.save make_fake_tournament()
-        ]
-        .spread (user_result, tournament_result) ->
-            user_id = user_result.id
-            tournament_id = tournament_result.id
-        .then ->
-            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
-        .then ->
-            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
-
-        rows.should.eventually.be.rejectedWith Error
-
     it "should be able to submit a list to a tournament they've entered"
 
     it "should be able to remove an already submitted list (if it hasn't been approved/locked)"

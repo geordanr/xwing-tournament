@@ -16,5 +16,14 @@ exports.save = (doc) ->
 exports.fetch = (id) ->
     Doc.fetchDoc id, _type
 
+exports.getAll = (after=null) ->
+    try
+        after = parseInt(after)
+    catch
+        after = null
+    after ?= parseInt((new Date()).getTime() / 1000)
+
+    Doc.view 'tournament', 'byStartTimestamp', {startKey: after}
+
 exports.getParticipants = (tournament_id) ->
     Doc.view 'tournament', 'participants', {startkey: [tournament_id], endkey: [tournament_id, {}]}
