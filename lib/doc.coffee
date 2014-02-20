@@ -11,6 +11,7 @@ exports.saveRaw = (doc) ->
 
     exports.db.insert doc, (err, body, header) ->
         if err
+            #console.error "reject #{err}"
             deferred.reject err
         else
             #console.log "saved doc #{body.id} to #{exports.db.config.db}"
@@ -32,7 +33,7 @@ exports.saveWithRetries = (doc, max_retries=5) ->
         .fail (err) ->
             if err.error == 'conflict'
                 if max_retries > 0
-                    console.warn "Error saving doc #{doc._id}: '#{err}', #{max_retries} retries remaining"
+                    #console.warn "Error saving doc #{doc._id}: '#{err}', #{max_retries} retries remaining"
                     setTimeout ->
                         exports.fetchDoc doc._id
                         .then (res) ->
@@ -104,6 +105,8 @@ exports.view = (design, view, params={}) ->
             console.error "error viewing #{design}/#{view}: #{err}"
             deferred.reject err
         else
+            #console.log "View #{design}/#{view} returns:"
+            #console.dir body
             deferred.resolve body.rows
 
     deferred.promise

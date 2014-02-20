@@ -11,3 +11,7 @@ exports.save = (doc) ->
 
 exports.fetch = (id) ->
     Doc.fetchDoc id, _type
+
+exports.getEnteredTournaments = (user_id) ->
+
+exports.getOwnedTournaments = (user_id) ->

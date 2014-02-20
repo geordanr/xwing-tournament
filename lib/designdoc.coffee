@@ -1,59 +1,94 @@
 Q = require 'q'
 Doc = require './doc.coffee'
 
-design_doc =
-    _id: '_design/tournament'
-    language: 'coffeescript'
-    views:
-        tournamentsByStart:
-            map: '''
-                (doc) ->
-                    if doc.type == 'tournament'
-                        emit doc.event_start_timestamp, null
-            '''
-        listsByTournamentParticipant:
-            map: '''
-                (doc) ->
-                    if doc.type == 'list'
-                        emit [doc.tournament_id, doc.participant_id],
-                        ships: (x.ship for x in doc.summary)
-            '''
-        matchByTournamentRound:
-            map: '''
-                (doc) ->
-                    if doc.type == 'match'
-                        emit [doc.tournament_id, doc.round],
-                        finished: doc.finished,
-                        participants: doc.participants,
-                        result: doc.result,
-                        winner: doc.winner
-            '''
-        participantsByTournament:
-            map: '''
-                (doc) ->
-                    if doc.type == 'participant'
-                        emit doc.tournament_id,
-                        email: doc.participant_email
-            '''
+design_docs =
+    'tournament':
+        language: 'coffeescript'
+        views:
+            byStartTimestamp:
+                map: '''
+                    (doc) ->
+                        if doc.type == 'tournament'
+                            emit doc.event_start_timestamp, null
+                '''
+            byOwner:
+                map: '''
+                    (doc) ->
+                        if doc.type == 'tournament'
+                            emit [
+                                doc.organizer_user_id
+                                doc.event_start_timestamp
+                            ], null
+                '''
+            participants:
+                map: '''
+                    (doc) ->
+                        if doc.type == 'participant'
+                            emit [
+                                doc.tournament_id
+                                doc.user_id
+                            ],
+                                user_id: doc.user_id
+                                participant_email: doc.participant_email
+                '''
+
+    'list':
+        language: 'coffeescript'
+        views:
+            byTournamentParticipant:
+                map: '''
+                    (doc) ->
+                        if doc.type == 'list'
+                            emit [doc.tournament_id, doc.participant_id],
+                            ships: (x.ship for x in doc.summary)
+                '''
+
+    'match':
+        language: 'coffeescript'
+        views:
+            byTournamentRound:
+                map: '''
+                    (doc) ->
+                        if doc.type == 'match'
+                            emit [doc.tournament_id, doc.round],
+                            finished: doc.finished,
+                            participants: doc.participants,
+                            result: doc.result,
+                            winner: doc.winner
+                '''
+
+    'participant':
+        language: 'coffeescript'
+        views:
+            enteredTournaments:
+                map: '''
+                    (doc) ->
+                        if doc.type == 'participant'
+                            emit [
+                                doc.user_id
+                                doc.tournament_id
+                            ],
+                                tournament_id: doc.tournament_id
+                '''
 
 exports.createViews = ->
+    Q.all(applyDesignDoc(name, doc) for name, doc of design_docs)
+
+applyDesignDoc = (name, doc) ->
     deferred = Q.defer()
 
-    Doc.saveWithRetries design_doc
+    doc._id = "_design/#{name}"
+    Doc.saveWithRetries doc
     .then (res) ->
-        #console.log "saved design_doc to #{Doc.db.config.db}"
         deferred.resolve res
     .fail (err) ->
         console.error "Failed to save design doc to #{Doc.db.config.db}: #{err}"
-        Doc.fetchDoc design_doc._id
+        Doc.fetchDoc doc._id
         .then (old_doc) ->
-            #console.log "Fetched old design doc from #{Doc.db.config.db}"
-            #console.dir old_doc
-            design_doc._rev = old_doc._rev
-            #console.log "Saving design doc with new rev #{design_doc._rev} to #{Doc.db.config.db}"
-            deferred.resolve Doc.saveRaw design_doc
+            doc._rev = old_doc._rev
+            deferred.resolve Doc.saveWithRetries doc
         .fail (err) ->
-            console.error "Failed to fetch design doc #{design_doc._id} from #{Doc.db.config.db}"
+            console.error "Failed to fetch design doc #{doc._id} from #{Doc.db.config.db}"
             deferred.reject err
 
     deferred.promise

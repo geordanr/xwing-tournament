@@ -15,3 +15,6 @@ exports.save = (doc) ->
 
 exports.fetch = (id) ->
     Doc.fetchDoc id, _type
+
+exports.getParticipants = (tournament_id) ->
+    Doc.view 'tournament', 'participants', {startkey: [tournament_id], endkey: [tournament_id, {}]}

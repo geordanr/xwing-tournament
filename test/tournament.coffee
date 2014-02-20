@@ -143,7 +143,7 @@ describe "Tournament", ->
             t1_row.id = t1_result.id
             t2_row.id = t2_result.id
         .then ->
-            Doc.view 'tournament', 'tournamentsByStart'
+            Doc.view 'tournament', 'byStartTimestamp'
 
         Q.allSettled [
             promise.should.eventually.include t1_row

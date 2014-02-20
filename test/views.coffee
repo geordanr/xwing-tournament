@@ -38,9 +38,11 @@ describe "CouchDB Views", ->
         promise = createViews()
         .then (results) ->
             Q.all [
-                Doc.view('tournament', 'listsByTournamentParticipant').should.eventually.be.empty
-                Doc.view('tournament', 'matchByTournamentRound').should.eventually.be.empty
-                Doc.view('tournament', 'participantsByTournament').should.eventually.be.empty
+                Doc.view('tournament', 'byStartTimestamp').should.eventually.be.empty
+                Doc.view('tournament', 'byOwner').should.eventually.be.empty
+                Doc.view('tournament', 'participants').should.eventually.be.empty
+                Doc.view('list', 'byTournamentParticipant').should.eventually.be.empty
+                Doc.view('match', 'byTournamentRound').should.eventually.be.empty
             ]
 
     it "should imprint views over old ones", ->
@@ -49,7 +51,5 @@ describe "CouchDB Views", ->
         .then (results) ->
             first_rev = results.rev
             createViews()
-        .then (results) ->
-            results
-        promise.should.eventually.have.property 'id', '_design/tournament'
-        promise.should.eventually.not.have.property 'rev', first_rev
+        
+        promise.should.eventually.not.be.rejectedWith Error

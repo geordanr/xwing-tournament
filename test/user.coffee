@@ -50,11 +50,15 @@ describe "Regular User", ->
         .finally ->
             done()
 
-    it "should be able to log in using all supported OAuth strategies"
+    it "saves users", ->
+        res = User.save make_fake_user()
+        res.should.eventually.have.property 'rev'
 
-    it "should be able to view all tournaments"
+    it "logs users in using all supported OAuth strategies"
 
-    it "should be able to enter a tournament", ->
+    it "lets users view all tournaments"
+
+    it "lets users enter a tournament", ->
         user_id = null
         tournament_id = null
         rows = Q.all [
@@ -66,11 +70,11 @@ describe "Regular User", ->
             tournament_id = tournament_result.id
             Participant.enterTournament tournament_id, user_id, 'participant@example.com'
         .then (res) ->
-            Doc.view 'tournament', 'participantsByTournament', {key: tournament_id}
+            Tournament.getParticipants tournament_id
 
         rows.should.eventually.have.length 1
 
-    it "should be able to enter a tournament exactly once", ->
+    it "allows a user to enter a tournament exactly once", ->
         user_id = null
         tournament_id = null
         rows = Q.all [
@@ -80,10 +84,10 @@ describe "Regular User", ->
         .spread (user_result, tournament_result) ->
             user_id = user_result.id
             tournament_id = tournament_result.id
-            Q.all [
-                Participant.enterTournament tournament_id, user_id, 'participant@example.com'
-                Participant.enterTournament tournament_id, user_id, 'participant@example.com'
-            ]
+        .then ->
+            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+        .then ->
+            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
 
         rows.should.eventually.be.rejectedWith Error
 
