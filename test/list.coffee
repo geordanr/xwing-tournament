@@ -123,6 +123,42 @@ describe "List", ->
             list.should.eventually.not.have.property 'ships', null
         ]
 
+    it "only accepts ships with a pilot", ->
+        list = save_fake_list()
+        .then (res) ->
+            List.fetch res.id
+        .then (ls) ->
+            delete ls.ships[0].pilot
+            List.save ls
+        list.should.eventually.be.rejectedWith Error
+
+    it "only accepts ships with a ship", ->
+        list = save_fake_list()
+        .then (res) ->
+            List.fetch res.id
+        .then (ls) ->
+            delete ls.ships[0].ship
+            List.save ls
+        list.should.eventually.be.rejectedWith Error
+
+    it "only accepts ships with a list of upgrades", ->
+        list = save_fake_list()
+        .then (res) ->
+            List.fetch res.id
+        .then (ls) ->
+            delete ls.ships[0].upgrades
+            List.save ls
+        list.should.eventually.be.rejectedWith Error
+
+    it "accepts ships with an empty list of upgrades", ->
+        list = save_fake_list()
+        .then (res) ->
+            List.fetch res.id
+        .then (ls) ->
+            ls.ships[0].upgrades = []
+            List.save ls
+        list.should.eventually.be.fulfilled
+
     it "has a link to a squad builder", ->
         list = save_fake_list()
         .then (res) ->
