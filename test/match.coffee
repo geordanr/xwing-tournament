@@ -112,10 +112,34 @@ describe "Match", ->
 
             Q.all promises
 
+    it "has no result if the match isn't finished", ->
+        match = save_fake_match 42
 
+        Q.all [
+            match.should.eventually.have.property 'finished', false
+            match.should.eventually.have.property 'result', null
+        ]
 
-    it "has no result if the match isn't finished"
+    it "has a result if the match is finished", ->
+        winner_id = null
+        save_fake_match 42
+        .then (m) ->
+            winner_id = m.participants[0].participant_id
+            Match.finish m._id, winner_id, "Win"
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) ->
+            Q.all [
+                match.should.have.property 'finished', true
+                match.should.have.property 'result', "Win"
+                match.should.have.property 'winner', winner_id
+                match.awarded_points.should.have.property match.winner, 1
+            ]
 
-    it "has a result if the match is finished"
+    it "supports custom points for wins"
+
+    it "supports custom points for draws"
+
+    it "supports custom points for losses"
 
     it "supports having a bye"

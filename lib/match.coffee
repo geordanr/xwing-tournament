@@ -22,7 +22,8 @@ exports.save = (doc) ->
         for participant in doc.participants
             throw new Error "Participant ID required" unless participant.participant_id?
             throw new Error "List ID required" unless participant.list_id?
-        if doc.finished and not (doc.awarded_points? and doc.awarded_points.length > 0)
+        if doc.finished and not doc.awarded_points?
+            console.dir doc
             throw new Error "Match is finished but no points were awarded"
         Doc.saveDoc doc, _type, _properties
     catch err
@@ -35,7 +36,7 @@ exports.fetch = (id) ->
 defaultAwarderFunc = (participants, winner_id, result) ->
     awarded_points = {}
     for participant in participants
-        awarded_points[participant_id] = if participant.participant_id == winner_id then 1 else 0
+        awarded_points[participant.participant_id] = if participant.participant_id == winner_id then 1 else 0
     awarded_points
 
 exports.finish = (match_id, winner_participant_id, result, pointsAwarderFunc=defaultAwarderFunc) ->
@@ -45,4 +46,4 @@ exports.finish = (match_id, winner_participant_id, result, pointsAwarderFunc=def
         match.winner = winner_participant_id
         match.result = result
         match.awarded_points = pointsAwarderFunc match.participants, winner_participant_id, result
-        Match.save match
+        exports.save match
