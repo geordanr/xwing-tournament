@@ -37,6 +37,13 @@ make_fake_list = ->
             ]
         }
         {
+            pilot: "Ten Nunb"
+            ship: "B-Wing"
+            upgrades: [
+                "Push the Limit"
+            ]
+        }
+        {
             pilot: "Biggs Darklighter"
             ship: "X-Wing"
             upgrades: [

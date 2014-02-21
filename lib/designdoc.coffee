@@ -39,8 +39,16 @@ design_docs =
                 map: '''
                     (doc) ->
                         if doc.type == 'list'
+                            counts = {}
+                            for ship in doc.ships
+                                counts[ship.ship] ?= 0
+                                counts[ship.ship]++
+
+                            sorted_ships = Object.keys(counts).sort()
+
                             emit [doc.tournament_id, doc.participant_id],
-                            ships: (x.ship for x in doc.summary)
+                                ships: ("#{counts[ship]}x #{ship}" for ship in sorted_ships).join ', '
+                                url: doc.url
                 '''
 
     'match':

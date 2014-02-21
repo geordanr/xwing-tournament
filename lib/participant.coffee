@@ -1,5 +1,6 @@
 Doc = require './doc'
 Tournament = require './tournament'
+List = require './list'
 
 _type = 'participant'
 _properties = [
@@ -34,7 +35,7 @@ exports.getEntry = (tournament_id, user_id) ->
         Doc.view 'participant', 'enteredTournaments', {key: [user_id, tournament_id]}
     .then (rows) ->
         if rows.length > 0
-            Doc.fetchDoc rows[0].id, _type
+            exports.fetch rows[0].id
         else
             throw new Error "User #{user_id} was not entered in tournament #{tournament_id}"
 
@@ -48,8 +49,28 @@ exports.checkIfEntryExists = (tournament_id, user_id) ->
     .fail ->
         false
 
+exports.addList = (participant_id, ships, url) ->
+    list =
+        url: url
+        ships: ships
+        approved: false
+    exports.fetch participant_id
+    .then (participant) ->
+        list.tournament_id = participant.tournament_id
+        list.participant_id = participant_id
+        List.save list
+
+exports.removeList = (participant_id, list_id) ->
+
+exports.getLists = (participant_id) ->
+    exports.fetch participant_id
+    .then (participant) ->
+        Doc.view 'list', 'byTournamentParticipant', {key: [participant.tournament_id, participant_id]}
+    .then (rows) ->
+        (row.value for row in rows)
+
 #exports.save = (doc) ->
 #    Doc.saveDoc doc, _type, _properties
-#
-#exports.fetch = (id) ->
-#    Doc.fetchDoc id, _type
+
+exports.fetch = (id) ->
+    Doc.fetchDoc id, _type

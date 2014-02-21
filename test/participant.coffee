@@ -23,7 +23,7 @@ make_fake_tournament = ->
     event_start_timestamp: parseInt(new Date().getTime() / 1000)
     event_end_timestamp: parseInt(new Date().getTime() / 1000) + 3600
 
-describe "Regular User", ->
+describe "Participant", ->
 
     beforeEach (done) ->
         dbname = "xwing-tournament-test-#{@currentTest.title.toLowerCase().replace /[^a-z0-9]/g, '-'}-#{uuid.v4()}"
@@ -101,11 +101,108 @@ describe "Regular User", ->
 
         entered.should.become false
 
-    it "adds a list to a tournament entry"
+    it "adds a list to a tournament entry", ->
+        user_id = null
+        tournament_id = null
+        rows = Q.all [
+            User.save make_fake_user()
+            Tournament.save make_fake_tournament()
+        ]
+        .spread (user_result, tournament_result) ->
+            user_id = user_result.id
+            tournament_id = tournament_result.id
+        .then ->
+            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+        .then (res) ->
+            ships = [
+                {
+                    pilot: "Rookie Pilot"
+                    ship: "X-Wing"
+                    upgrades: []
+                }
+                {
+                    pilot: "Gold Squadron Pilot"
+                    ship: "Y-Wing"
+                    upgrades: []
+                }
+                {
+                    pilot: "Rookie Pilot"
+                    ship: "X-Wing"
+                    upgrades: []
+                }
+            ]
+            url = "http://example.com/"
+            Participant.addList res.id, ships, url
 
     it "removes a list from a tournament entry"
 
-    it "shows the lists added to a tournament entry"
+    it.only "shows the lists added to a tournament entry", ->
+        user_id = null
+        tournament_id = null
+        lists = Q.all [
+            User.save make_fake_user()
+            Tournament.save make_fake_tournament()
+        ]
+        .spread (user_result, tournament_result) ->
+            user_id = user_result.id
+            tournament_id = tournament_result.id
+        .then ->
+            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+        .then (res) ->
+            ships = [
+                {
+                    pilot: "Rookie Pilot"
+                    ship: "X-Wing"
+                    upgrades: []
+                }
+                {
+                    pilot: "Gold Squadron Pilot"
+                    ship: "Y-Wing"
+                    upgrades: []
+                }
+                {
+                    pilot: "Rookie Pilot"
+                    ship: "X-Wing"
+                    upgrades: []
+                }
+            ]
+            url = "http://example.com/"
+            Participant.addList res.id, ships, url
+            res.id
+        .then (participant_id) ->
+            ships = [
+                {
+                    pilot: "Avenger Squadron Pilot"
+                    ship: "TIE Interceptor"
+                    upgrades: []
+                }
+                {
+                    pilot: "Academy Pilot"
+                    ship: "TIE Fighter"
+                    upgrades: []
+                }
+            ]
+            url = "http://example.com/"
+            Participant.addList participant_id, ships, url
+            participant_id
+        .then (participant_id) ->
+            Participant.getLists participant_id
+        .then (res) ->
+            console.dir res
+            res
+
+        expected = [
+            {
+                ships: '2x X-Wing, 1x Y-Wing'
+                url: 'http://example.com/'
+            }
+            {
+                ships: '1x TIE Fighter, 1x TIE Interceptor',
+                url: 'http://example.com/'
+            }
+        ]
+
+        lists.should.eventually.include.members expected
 
     it "lists the tournaments entered", ->
         user_id = null
