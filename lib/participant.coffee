@@ -60,7 +60,10 @@ exports.addList = (participant_id, ships, url) ->
         list.participant_id = participant_id
         List.save list
 
-exports.removeList = (participant_id, list_id) ->
+exports.removeList = (list_id) ->
+    List.fetch list_id
+    .then (list) ->
+        Doc.destroyDoc list_id, list._rev
 
 exports.getLists = (participant_id) ->
     exports.fetch participant_id

@@ -134,7 +134,46 @@ describe "Participant", ->
             url = "http://example.com/"
             Participant.addList res.id, ships, url
 
-    it "removes a list from a tournament entry"
+    it "removes a list from a tournament entry", ->
+        user_id = null
+        tournament_id = null
+        participant_id = null
+        rows = Q.all [
+            User.save make_fake_user()
+            Tournament.save make_fake_tournament()
+        ]
+        .spread (user_result, tournament_result) ->
+            user_id = user_result.id
+            tournament_id = tournament_result.id
+        .then ->
+            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+        .then (res) ->
+            participant_id = res.id
+            ships = [
+                {
+                    pilot: "Rookie Pilot"
+                    ship: "X-Wing"
+                    upgrades: []
+                }
+                {
+                    pilot: "Gold Squadron Pilot"
+                    ship: "Y-Wing"
+                    upgrades: []
+                }
+                {
+                    pilot: "Rookie Pilot"
+                    ship: "X-Wing"
+                    upgrades: []
+                }
+            ]
+            url = "http://example.com/"
+            Participant.addList participant_id, ships, url
+        .then (res) ->
+            Participant.removeList res.id
+        .then ->
+            Participant.getLists participant_id
+
+        rows.should.eventually.be.empty
 
     it "shows the lists added to a tournament entry", ->
         user_id = null
