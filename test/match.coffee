@@ -70,6 +70,18 @@ save_fake_match = (round=1) ->
     .then (res) ->
         Match.fetch res.id
 
+customAwarderFunc = (participants, winner_id, result) ->
+    awarded_points = {}
+    for participant in participants
+        switch result
+            when "Match Win"
+                awarded_points[participant.participant_id] = if participant.participant_id == winner_id then 5 else 0
+            when "Modified Match Win"
+                awarded_points[participant.participant_id] = if participant.participant_id == winner_id then 3 else 0
+            when "Draw"
+                awarded_points[participant.participant_id] = 1
+    awarded_points
+
 describe "Match", ->
 
     beforeEach (done) ->
@@ -136,10 +148,53 @@ describe "Match", ->
                 match.awarded_points.should.have.property match.winner, 1
             ]
 
-    it "supports custom points for wins"
+    it "supports custom points for Match Wins", ->
+        winner_id = null
+        save_fake_match 42
+        .then (m) ->
+            winner_id = m.participants[0].participant_id
+            Match.finish m._id, winner_id, "Match Win", customAwarderFunc
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) ->
+            Q.all [
+                match.should.have.property 'finished', true
+                match.should.have.property 'result', "Match Win"
+                match.should.have.property 'winner', winner_id
+                match.awarded_points.should.have.property match.winner, 5
+            ]
 
-    it "supports custom points for draws"
+    it "supports custom points for Modified Match Wins", ->
+        winner_id = null
+        save_fake_match 42
+        .then (m) ->
+            winner_id = m.participants[0].participant_id
+            Match.finish m._id, winner_id, "Modified Match Win", customAwarderFunc
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) ->
+            Q.all [
+                match.should.have.property 'finished', true
+                match.should.have.property 'result', "Modified Match Win"
+                match.should.have.property 'winner', winner_id
+                match.awarded_points.should.have.property match.winner, 3
+            ]
 
-    it "supports custom points for losses"
+    it "supports custom points for Draws", ->
+        winner_id = null
+        save_fake_match 42
+        .then (m) ->
+            winner_id = m.participants[0].participant_id
+            Match.finish m._id, null, "Draw", customAwarderFunc
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) ->
+            Q.all [
+                match.should.have.property 'finished', true
+                match.should.have.property 'result', "Draw"
+                match.should.have.property 'winner', null
+                match.awarded_points.should.have.property match.participants[0].participant_id, 1
+                match.awarded_points.should.have.property match.participants[1].participant_id, 1
+            ]
 
     it "supports having a bye"
