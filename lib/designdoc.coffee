@@ -28,6 +28,7 @@ design_docs =
                                 doc.tournament_id
                                 doc.user_id
                             ],
+                                name: doc.name
                                 user_id: doc.user_id
                                 participant_email: doc.participant_email
                 '''
@@ -76,6 +77,7 @@ design_docs =
                                 doc.user_id
                                 doc.tournament_id
                             ],
+                                name: doc.name
                                 tournament_id: doc.tournament_id
                 '''
 

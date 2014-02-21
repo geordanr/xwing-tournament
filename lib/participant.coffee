@@ -5,11 +5,12 @@ List = require './list'
 _type = 'participant'
 _properties = [
     'tournament_id'
+    'name'
     'user_id'
     'participant_email'
 ]
 
-exports.enterTournament = (tournament_id, user_id, participant_email) ->
+exports.enterTournament = (tournament_id, name, user_id, participant_email) ->
     # There can be only one tournament entry per user
     exports.checkIfEntryExists tournament_id, user_id
     .then (isEntered) ->
@@ -19,6 +20,7 @@ exports.enterTournament = (tournament_id, user_id, participant_email) ->
         doc =
             _id: "#{_type}--#{tournament_id}--#{user_id}"
             tournament_id: tournament_id
+            name: name
             user_id: user_id
             participant_email: participant_email
         Doc.saveDoc doc, _type, _properties

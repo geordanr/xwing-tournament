@@ -60,7 +60,7 @@ describe "Participant", ->
         .spread (user_result, tournament_result) ->
             user_id = user_result.id
             tournament_id = tournament_result.id
-            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+            Participant.enterTournament tournament_id, 'Dude 1', user_id, 'participant@example.com'
         .then ->
             Participant.checkIfEntryExists tournament_id, user_id
 
@@ -77,9 +77,9 @@ describe "Participant", ->
             user_id = user_result.id
             tournament_id = tournament_result.id
         .then ->
-            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+            Participant.enterTournament tournament_id, 'Dude 1', user_id, 'participant@example.com'
         .then ->
-            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+            Participant.enterTournament tournament_id, 'Dude 2', user_id, 'participant@example.com'
 
         rows.should.eventually.be.rejectedWith Error
 
@@ -93,7 +93,7 @@ describe "Participant", ->
         .spread (user_result, tournament_result) ->
             user_id = user_result.id
             tournament_id = tournament_result.id
-            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+            Participant.enterTournament tournament_id, 'Dude 1', user_id, 'participant@example.com'
         .then ->
             Participant.revokeEntry tournament_id, user_id
         .then ->
@@ -112,7 +112,7 @@ describe "Participant", ->
             user_id = user_result.id
             tournament_id = tournament_result.id
         .then ->
-            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+            Participant.enterTournament tournament_id, 'Dude 1', user_id, 'participant@example.com'
         .then (res) ->
             ships = [
                 {
@@ -146,7 +146,7 @@ describe "Participant", ->
             user_id = user_result.id
             tournament_id = tournament_result.id
         .then ->
-            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+            Participant.enterTournament tournament_id, 'Dude 1', user_id, 'participant@example.com'
         .then (res) ->
             participant_id = res.id
             ships = [
@@ -186,7 +186,7 @@ describe "Participant", ->
             user_id = user_result.id
             tournament_id = tournament_result.id
         .then ->
-            Participant.enterTournament tournament_id, user_id, 'participant@example.com'
+            Participant.enterTournament tournament_id, 'Dude 1', user_id, 'participant@example.com'
         .then (res) ->
             ships = [
                 {
@@ -259,8 +259,8 @@ describe "Participant", ->
             t3_id = t3_res.id
 
             Q.all [
-                Participant.enterTournament t1_id, user_id
-                Participant.enterTournament t2_id, user_id
+                Participant.enterTournament t1_id, 'Dude 1', user_id
+                Participant.enterTournament t2_id, 'Dude 2', user_id
             ]
         .then ->
             Q.all [

@@ -6,8 +6,22 @@ uuid = require 'node-uuid'
 server = nano 'http://localhost:5984'
 
 Doc = require '../lib/doc'
+Participant = require '../lib/participant'
 Tournament = require '../lib/tournament'
+User = require '../lib/user'
 {createViews} = require '../lib/designdoc'
+
+make_fake_user = ->
+    oauth_strategy: 'google'
+    oauth_id: uuid.v4()
+
+make_fake_tournament = ->
+    name: "Test tournament #{uuid.v4()}"
+    description: 'Fake tournament'
+    organizer_user_id: 'abc-123'
+    organizer_email: 'organizer@example.com'
+    event_start_timestamp: parseInt(new Date().getTime() / 1000)
+    event_end_timestamp: parseInt(new Date().getTime() / 1000) + 3600
 
 tournament_properties = [
     'name'
@@ -229,3 +243,37 @@ describe "Tournament", ->
             promise.should.eventually.not.include t1_row
             promise.should.eventually.include t2_row
         ]
+
+    it.only "lists the participants", ->
+        u1_id = null
+        u2_id = null
+        tournament_id = null
+        Q.all [
+            User.save make_fake_user()
+            User.save make_fake_user()
+            Tournament.save make_fake_tournament()
+        ]
+        .spread (u1_result, u2_result, tournament_result) ->
+            u1_id = u1_result.id
+            u2_id = u2_result.id
+            tournament_id = tournament_result.id
+            Q.all [
+                Participant.enterTournament tournament_id, 'Dude 1', u1_id, 'participant1@example.com'
+                Participant.enterTournament tournament_id, 'Dude 2', u2_id, 'participant2@example.com'
+            ]
+        .then ->
+            Tournament.getParticipants tournament_id
+        .then (rows) ->
+            expected = [
+                {
+                    name: 'Dude 1',
+                    user_id: u1_id
+                    participant_email: 'participant1@example.com'
+                }
+                {
+                    name: 'Dude 2',
+                    user_id: u2_id
+                    participant_email: 'participant2@example.com'
+                }
+            ]
+            (row.value for row in rows).should.have.deep.members expected
