@@ -136,7 +136,7 @@ describe "Participant", ->
 
     it "removes a list from a tournament entry"
 
-    it.only "shows the lists added to a tournament entry", ->
+    it "shows the lists added to a tournament entry", ->
         user_id = null
         tournament_id = null
         lists = Q.all [
@@ -187,9 +187,6 @@ describe "Participant", ->
             participant_id
         .then (participant_id) ->
             Participant.getLists participant_id
-        .then (res) ->
-            console.dir res
-            res
 
         expected = [
             {
@@ -202,7 +199,7 @@ describe "Participant", ->
             }
         ]
 
-        lists.should.eventually.include.members expected
+        lists.should.eventually.have.deep.members expected
 
     it "lists the tournaments entered", ->
         user_id = null

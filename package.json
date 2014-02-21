@@ -4,8 +4,9 @@
     "version": "0.0.1",
     "private": "true",
     "dependencies": {
-        "coffee-script": "1.7.x",
+        "chai": "1.9.x",
         "chai-as-promised": "4.1.x",
+        "coffee-script": "1.7.x",
         "express": "3.4.x",
         "jade": "1.1.x",
         "mocha": "1.17.x",
