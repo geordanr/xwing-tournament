@@ -60,10 +60,11 @@ design_docs =
                     (doc) ->
                         if doc.type == 'match'
                             emit [doc.tournament_id, doc.round],
-                            finished: doc.finished,
-                            participants: doc.participants,
-                            result: doc.result,
-                            winner: doc.winner
+                                finished: doc.finished,
+                                participants: doc.participants,
+                                result: doc.result,
+                                winner: doc.winner
+                                awarded_points: doc.awarded_points
                 '''
 
     'participant':

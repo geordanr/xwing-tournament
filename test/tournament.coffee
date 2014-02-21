@@ -244,7 +244,7 @@ describe "Tournament", ->
             promise.should.eventually.include t2_row
         ]
 
-    it.only "lists the participants", ->
+    it "lists the participants", ->
         u1_id = null
         u2_id = null
         tournament_id = null
