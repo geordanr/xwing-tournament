@@ -82,6 +82,19 @@ design_docs =
                                 tournament_id: doc.tournament_id
                 '''
 
+    'user':
+        language: 'coffeescript'
+        views:
+            byStrategyId:
+                map: '''
+                    (doc) ->
+                        if doc.type == 'user'
+                            emit [
+                                doc.oauth_strategy
+                                doc.oauth_id
+                            ], null
+                '''
+
 exports.createViews = ->
     Q.all(applyDesignDoc(name, doc) for name, doc of design_docs)
 

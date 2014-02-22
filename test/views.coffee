@@ -43,6 +43,7 @@ describe "CouchDB Views", ->
                 Doc.view('tournament', 'participants').should.eventually.be.empty
                 Doc.view('list', 'byTournamentParticipant').should.eventually.be.empty
                 Doc.view('match', 'byTournamentRound').should.eventually.be.empty
+                Doc.view('user', 'byStrategyId').should.eventually.be.empty
             ]
 
     it "should imprint views over old ones", ->

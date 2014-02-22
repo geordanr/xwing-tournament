@@ -54,6 +54,21 @@ describe "Regular User", ->
         res = User.save make_fake_user()
         res.should.eventually.have.property 'rev'
 
+    it "finds users based on a strategy and oauth id", ->
+        user = User.save
+            oauth_strategy: 'test_strat'
+            oauth_id: '1234'
+            email: 'test@example.com'
+        .then ->
+            User.find 'test_strat', '1234'
+
+        user.should.eventually.have.property 'email', 'test@example.com'
+
+    it "returns null for a nonexistent strategy/oauth id pair", ->
+        user = User.find 'nonexistent', 'xxxx'
+
+        user.should.eventually.be.null
+
     it "logs users in using all supported OAuth strategies"
 
     it "lets users view all tournaments"
