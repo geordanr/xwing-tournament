@@ -1,0 +1,11 @@
+doctype html
+html(lang="en")
+  body
+    form(method='post', action='/login')
+      label
+        | Username
+        input(name='username')
+      label
+        | Password
+        input(name='password', type='password')
+      input(type='submit')

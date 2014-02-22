@@ -13,6 +13,8 @@
         "mocha-as-promised": "2.0.x",
         "nano": "4.4.x",
         "node-uuid": "1.4.x",
+        "passport": "*",
+        "passport-local": "*",
         "q": "1.0.x",
         "uglify-js": "2.4.x"
     },
