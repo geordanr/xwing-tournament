@@ -1,5 +1,6 @@
 Q = require 'q'
 Doc = require './doc'
+List = require './list'
 
 _type = 'match'
 _properties = [
@@ -11,19 +12,42 @@ _properties = [
     "awarded_points"
 ]
 
-exports.save = (doc) ->
-    throw new Error "Tournament ID required" unless doc.tournament_id?
-    throw new Error "Round required" unless doc.round?
+exports.new = (tournament_id, round, list1_id, list2_id) ->
+    throw new Error "Tournament ID required" unless tournament_id?
+    throw new Error "Round required" unless round?
 
-    doc.awarded_points ?= null
-    doc.finished ?= false
-    doc.result ?= null
+    Q.all [
+        List.fetch list1_id
+        if list2_id then List.fetch list2_id else null
+    ]
+    .spread (list1, list2) ->
+        exports.save
+            tournament_id: tournament_id
+            round: round
+            participants: [
+                {
+                    participant_id: list1.participant_id
+                    list_id: list1._id
+                }
+                {
+                    participant_id: list2?.participant_id ? null
+                    list_id: list2?._id ? null
+                }
+            ]
+            finished: false
+            result: null
+            awarded_points: null
+
+exports.bye = (tournament_id, round, list_id, result="Bye", pointsAwarderFunc=defaultAwarderFunc) ->
+    exports.new tournament_id, round, list_id, null
+    .then (res) ->
+        exports.fetch res.id
+    .then (match) ->
+        exports.finish match._id, match.participants[0].participant_id, result, pointsAwarderFunc
+
+exports.save = (doc) ->
     try
-        for participant in doc.participants
-            throw new Error "Participant ID required" unless participant.participant_id?
-            throw new Error "List ID required" unless participant.list_id?
         if doc.finished and not doc.awarded_points?
-            console.dir doc
             throw new Error "Match is finished but no points were awarded"
         Doc.saveDoc doc, _type, _properties
     catch err
@@ -36,7 +60,15 @@ exports.fetch = (id) ->
 defaultAwarderFunc = (participants, winner_id, result) ->
     awarded_points = {}
     for participant in participants
-        awarded_points[participant.participant_id] = if participant.participant_id == winner_id then 1 else 0
+        switch result
+            when "Match Win"
+                awarded_points[participant.participant_id] = if participant.participant_id == winner_id then 5 else 0
+            when "Modified Match Win"
+                awarded_points[participant.participant_id] = if participant.participant_id == winner_id then 3 else 0
+            when "Bye"
+                awarded_points[participant.participant_id] = if participant.participant_id == winner_id then 5 else 0
+            when "Draw"
+                awarded_points[participant.participant_id] = 1
     awarded_points
 
 exports.finish = (match_id, winner_participant_id, result, pointsAwarderFunc=defaultAwarderFunc) ->

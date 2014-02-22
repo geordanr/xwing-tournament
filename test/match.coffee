@@ -24,62 +24,16 @@ make_fake_tournament = ->
     event_start_timestamp: parseInt(new Date().getTime() / 1000)
     event_end_timestamp: parseInt(new Date().getTime() / 1000) + 3600
 
-save_fake_match = (round=1) ->
-    u1_id = null
-    u2_id = null
-    tournament_id = null
-    match = Q.all [
-        User.save make_fake_user()
-        User.save make_fake_user()
-        Tournament.save make_fake_tournament()
-    ]
-    .spread (u1_result, u2_result, tournament_result) ->
-        u1_id = u1_result.id
-        u2_id = u2_result.id
-        tournament_id = tournament_result.id
-        Q.all [
-            Participant.enterTournament tournament_id, 'Dude 1', u1_id, 'participant1@example.com'
-            Participant.enterTournament tournament_id, 'Dude 2', u2_id, 'participant2@example.com'
-        ]
-    .spread (p1_res, p2_res) ->
-        Q.all [
-            Participant.fetch p1_res.id
-            Participant.fetch p2_res.id
-        ]
-    .spread (p1, p2) ->
-        Q.all [
-            Participant.addList p1._id, [ { pilot: "Rookie Pilot", ship: "X-Wing", upgrades: [] } ], 'http://example.com/1'
-            Participant.addList p2._id, [ { pilot: "Academy Pilot", ship: "TIE Fighter", upgrades: [] } ], 'http://example.com/2'
-            Q.fcall -> p1._id
-            Q.fcall -> p2._id
-        ]
-    .spread (list1_res, list2_res, p1_id, p2_id) ->
-        Match.save
-            tournament_id: tournament_id
-            round: round
-            participants: [
-                {
-                    participant_id: p1_id
-                    list_id: list1_res.id
-                }
-                {
-                    participant_id: p2_id
-                    list_id: list2_res.id
-                }
-            ]
-    .then (res) ->
-        Match.fetch res.id
-
 customAwarderFunc = (participants, winner_id, result) ->
     awarded_points = {}
     for participant in participants
         switch result
             when "Match Win"
-                awarded_points[participant.participant_id] = if participant.participant_id == winner_id then 5 else 0
+                awarded_points[participant.participant_id] = if participant.participant_id == winner_id then 42 else 0
             when "Modified Match Win"
-                awarded_points[participant.participant_id] = if participant.participant_id == winner_id then 3 else 0
+                awarded_points[participant.participant_id] = if participant.participant_id == winner_id then 69 else 0
             when "Draw"
-                awarded_points[participant.participant_id] = 1
+                awarded_points[participant.participant_id] = 33
     awarded_points
 
 describe "Match", ->
@@ -92,6 +46,35 @@ describe "Match", ->
             @db = server.use dbname
             Doc.use @db
             createViews()
+        .then =>
+            Q.all [
+                User.save make_fake_user()
+                User.save make_fake_user()
+                Tournament.save make_fake_tournament()
+            ]
+        .spread (u1_result, u2_result, tournament_result) =>
+            @user1_id = u1_result.id
+            @user2_id = u2_result.id
+            @tournament_id = tournament_result.id
+            Q.all [
+                Participant.enterTournament @tournament_id, 'Dude 1', @user1_id, 'participant1@example.com'
+                Participant.enterTournament @tournament_id, 'Dude 2', @user2_id, 'participant2@example.com'
+            ]
+        .spread (p1_res, p2_res) =>
+            @participant1_id = p1_res.id
+            @participant2_id = p2_res.id
+            Q.all [
+                Participant.fetch @participant1_id
+                Participant.fetch @participant2_id
+            ]
+        .then =>
+            Q.all [
+                Participant.addList @participant1_id, [ { pilot: "Rookie Pilot", ship: "X-Wing", upgrades: [] } ], 'http://example.com/1'
+                Participant.addList @participant2_id, [ { pilot: "Academy Pilot", ship: "TIE Fighter", upgrades: [] } ], 'http://example.com/2'
+            ]
+        .spread (list1_res, list2_res) =>
+            @list1_id = list1_res.id
+            @list2_id = list2_res.id
         .fail (err) =>
             console.error "Error creating db #{dbname}: #{err}"
             throw err
@@ -110,14 +93,20 @@ describe "Match", ->
             done()
 
     it "exists in a round in a tournament", ->
-        match = save_fake_match 42
+        round = 42
+        match = Match.new @tournament_id, round, @list1_id, @list2_id
+        .then (res) ->
+            Match.fetch res.id
 
         match.should.eventually.have.property 'tournament_id'
         match.should.eventually.not.have.property 'tournament_id', null
-        match.should.eventually.have.property 'round', 42
+        match.should.eventually.have.property 'round', round
 
     it "has the participants and lists they played", ->
-        save_fake_match()
+        round = 42
+        Match.new @tournament_id, round, @list1_id, @list2_id
+        .then (res) ->
+            Match.fetch res.id
         .then (match) ->
             promises = [ match.participants.should.have.length 2 ]
             .concat (participant.should.have.keys [ 'participant_id', 'list_id' ] for participant in match.participants)
@@ -125,7 +114,10 @@ describe "Match", ->
             Q.all promises
 
     it "has no result if the match isn't finished", ->
-        match = save_fake_match 42
+        round = 42
+        match = Match.new @tournament_id, round, @list1_id, @list2_id
+        .then (res) ->
+            Match.fetch res.id
 
         Q.all [
             match.should.eventually.have.property 'finished', false
@@ -134,26 +126,13 @@ describe "Match", ->
 
     it "has a result if the match is finished", ->
         winner_id = null
-        save_fake_match 42
-        .then (m) ->
-            winner_id = m.participants[0].participant_id
-            Match.finish m._id, winner_id, "Win"
+        round = 42
+        match = Match.new @tournament_id, round, @list1_id, @list2_id
         .then (res) ->
             Match.fetch res.id
-        .then (match) ->
-            Q.all [
-                match.should.have.property 'finished', true
-                match.should.have.property 'result', "Win"
-                match.should.have.property 'winner', winner_id
-                match.awarded_points.should.have.property match.winner, 1
-            ]
-
-    it "supports custom points for Match Wins", ->
-        winner_id = null
-        save_fake_match 42
         .then (m) ->
             winner_id = m.participants[0].participant_id
-            Match.finish m._id, winner_id, "Match Win", customAwarderFunc
+            Match.finish m._id, winner_id, "Match Win"
         .then (res) ->
             Match.fetch res.id
         .then (match) ->
@@ -164,9 +143,31 @@ describe "Match", ->
                 match.awarded_points.should.have.property match.winner, 5
             ]
 
+    it "supports custom points for Match Wins", ->
+        winner_id = null
+        round = 42
+        match = Match.new @tournament_id, round, @list1_id, @list2_id
+        .then (res) ->
+            Match.fetch res.id
+        .then (m) ->
+            winner_id = m.participants[0].participant_id
+            Match.finish m._id, winner_id, "Match Win", customAwarderFunc
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) ->
+            Q.all [
+                match.should.have.property 'finished', true
+                match.should.have.property 'result', "Match Win"
+                match.should.have.property 'winner', winner_id
+                match.awarded_points.should.have.property match.winner, 42
+            ]
+
     it "supports custom points for Modified Match Wins", ->
         winner_id = null
-        save_fake_match 42
+        round = 42
+        match = Match.new @tournament_id, round, @list1_id, @list2_id
+        .then (res) ->
+            Match.fetch res.id
         .then (m) ->
             winner_id = m.participants[0].participant_id
             Match.finish m._id, winner_id, "Modified Match Win", customAwarderFunc
@@ -177,14 +178,15 @@ describe "Match", ->
                 match.should.have.property 'finished', true
                 match.should.have.property 'result', "Modified Match Win"
                 match.should.have.property 'winner', winner_id
-                match.awarded_points.should.have.property match.winner, 3
+                match.awarded_points.should.have.property match.winner, 69
             ]
 
     it "supports custom points for Draws", ->
-        winner_id = null
-        save_fake_match 42
+        round = 42
+        match = Match.new @tournament_id, round, @list1_id, @list2_id
+        .then (res) ->
+            Match.fetch res.id
         .then (m) ->
-            winner_id = m.participants[0].participant_id
             Match.finish m._id, null, "Draw", customAwarderFunc
         .then (res) ->
             Match.fetch res.id
@@ -193,8 +195,19 @@ describe "Match", ->
                 match.should.have.property 'finished', true
                 match.should.have.property 'result', "Draw"
                 match.should.have.property 'winner', null
-                match.awarded_points.should.have.property match.participants[0].participant_id, 1
-                match.awarded_points.should.have.property match.participants[1].participant_id, 1
+                match.awarded_points.should.have.property match.participants[0].participant_id, 33
+                match.awarded_points.should.have.property match.participants[1].participant_id, 33
             ]
 
-    it "supports having a bye"
+    it "supports having a bye", ->
+        Match.bye @tournament_id, 42, @list1_id
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) ->
+            Q.all [
+                match.should.have.property 'finished', true
+                match.should.have.property 'result', "Bye"
+                match.should.have.property 'winner', match.participants[0].participant_id
+                match.awarded_points.should.have.property match.participants[0].participant_id, 5
+                match.awarded_points.should.have.property match.participants[1].participant_id, 0
+            ]
