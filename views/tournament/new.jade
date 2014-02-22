@@ -1,0 +1,18 @@
+doctype html
+html(lang="en")
+  body
+    form(action="/api/tournament", method="post")
+      input(name="_method", value="PUT", type="hidden")
+      label
+        | Name
+        input(name="name")
+      label
+        | Start
+        input(name="event_start_timestamp", type="hidden" value=now)
+      label
+        | End
+        input(name="event_end_timestamp", type="hidden" value=now)
+      label
+        | Description
+        input(name="description", type="textarea")
+      input(type="submit")

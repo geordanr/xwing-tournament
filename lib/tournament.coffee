@@ -11,6 +11,10 @@ _properties = [
 ]
 
 exports.save = (doc) ->
+    doc.event_start_timestamp = parseInt doc.event_start_timestamp
+    doc.event_end_timestamp = parseInt doc.event_end_timestamp
+    throw "Start timestamp required" unless doc.event_start_timestamp?
+    throw "End timestamp required" unless doc.event_end_timestamp?
     Doc.saveDoc doc, _type, _properties
 
 exports.fetch = (id) ->
@@ -23,7 +27,9 @@ exports.getAll = (after=null) ->
         after = null
     after ?= parseInt((new Date()).getTime() / 1000)
 
-    Doc.view 'tournament', 'byStartTimestamp', {startKey: after}
+    Doc.view 'tournament', 'byStartTimestamp', {startKey: after, include_docs: true}
+    .then (rows) ->
+        (row.doc for row in rows)
 
 exports.getParticipants = (tournament_id) ->
     Doc.view 'tournament', 'participants', {startkey: [tournament_id], endkey: [tournament_id, {}]}
