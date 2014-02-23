@@ -27,7 +27,7 @@ exports.getAll = (after=null) ->
         after = null
     after ?= parseInt((new Date()).getTime() / 1000)
 
-    Doc.view 'tournament', 'byStartTimestamp', {startKey: after, include_docs: true}
+    Doc.view 'tournament', 'byStartTimestamp', {startkey: after, include_docs: true}
     .then (rows) ->
         (row.doc for row in rows)
 
