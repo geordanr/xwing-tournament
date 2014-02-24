@@ -12,12 +12,12 @@ _properties = [
     "awarded_points"
 ]
 
-exports.new = (tournament_id, round, list1_id, list2_id) ->
+exports.new = (tournament_id, round, list1_id=null, list2_id=null) ->
     throw new Error "Tournament ID required" unless tournament_id?
     throw new Error "Round required" unless round?
 
     Q.all [
-        List.fetch list1_id
+        if list1_id then List.fetch list1_id else null
         if list2_id then List.fetch list2_id else null
     ]
     .spread (list1, list2) ->
@@ -26,8 +26,8 @@ exports.new = (tournament_id, round, list1_id, list2_id) ->
             round: round
             participants: [
                 {
-                    participant_id: list1.participant_id
-                    list_id: list1._id
+                    participant_id: list1?.participant_id ? null
+                    list_id: list1?._id ? null
                 }
                 {
                     participant_id: list2?.participant_id ? null
@@ -78,4 +78,25 @@ exports.finish = (match_id, winner_participant_id, result, pointsAwarderFunc=def
         match.winner = winner_participant_id
         match.result = result
         match.awarded_points = pointsAwarderFunc match.participants, winner_participant_id, result
+        exports.save match
+
+exports.addList = (match_id, list_id) ->
+    exports.fetch match_id
+    .then (match) ->
+        if match.finished
+            throw new Error "Cannot add a list to an already finished match"
+        Q.all [
+            Q.fcall -> match
+            List.fetch list_id
+            .then (list) ->
+                participant_id: list.participant_id
+                list_id: list_id
+        ]
+    .spread (match, participant_obj) ->
+        if match.participants[0].participant_id is null
+            match.participants[0] = participant_obj
+        else if match.participants[1].participant_id is null
+            match.participants[1] = participant_obj
+        else
+            throw new Error "Cannot add a list to a full match"
         exports.save match

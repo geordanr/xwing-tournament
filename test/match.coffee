@@ -211,3 +211,127 @@ describe "Match", ->
                 match.awarded_points.should.have.property match.participants[0].participant_id, 5
                 match.awarded_points.should.have.property match.participants[1].participant_id, 0
             ]
+
+    it "can be created without participants", ->
+        Match.new @tournament_id, 42
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) ->
+            match.participants.should.have.deep.members [
+                {
+                    participant_id: null
+                    list_id: null
+                }
+                {
+                    participant_id: null
+                    list_id: null
+                }
+            ]
+
+    it "can be created with one participant", ->
+        Match.new @tournament_id, 42, @list1_id
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) =>
+            match.participants.should.have.deep.members = [
+                {
+                    participant_id: @participant1_id
+                    list_id: @list1_id
+                }
+                {
+                    participant_id: null
+                    list_id: null
+                }
+            ]
+
+    it "can be created with one participant in the second slot only", ->
+        Match.new @tournament_id, 42, null, @list2_id
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) =>
+            match.participants.should.have.deep.members = [
+                {
+                    participant_id: @participant2_id
+                    list_id: @list2_id
+                }
+                {
+                    participant_id: null
+                    list_id: null
+                }
+            ]
+
+    it "can have participant/list pairs added to the first empty slot when both are empty", ->
+        Match.new @tournament_id, 42
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) =>
+            Match.addList match._id, @list1_id
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) =>
+            match.participants.should.have.deep.members [
+                {
+                    participant_id: @participant1_id
+                    list_id: @list1_id
+                }
+                {
+                    participant_id: null
+                    list_id: null
+                }
+            ]
+
+    it "can have participant/list pairs added to the first empty slot it is empty", ->
+        Match.new @tournament_id, 42, null, @list2_id
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) =>
+            Match.addList match._id, @list1_id
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) =>
+            match.participants.should.have.deep.members [
+                {
+                    participant_id: @participant1_id
+                    list_id: @list1_id
+                }
+                {
+                    participant_id: @participant2_id
+                    list_id: @list2_id
+                }
+            ]
+
+    it "can have participant/list pairs added to the second empty slot when it is empty", ->
+        Match.new @tournament_id, 42, @list1_id
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) =>
+            Match.addList match._id, @list2_id
+        .then (res) ->
+            Match.fetch res.id
+        .then (match) =>
+            match.participants.should.have.deep.members [
+                {
+                    participant_id: @participant1_id
+                    list_id: @list1_id
+                }
+                {
+                    participant_id: @participant2_id
+                    list_id: @list2_id
+                }
+            ]
+
+    it "should not allow adding lists to Byes", ->
+        match = Match.bye @tournament_id, 42, @list1_id
+        .then (res) ->
+            Match.addList res.id, @list2_id
+
+        match.should.eventually.be.rejectedWith Error
+
+    it "should not allow adding lists to finished matches", ->
+        match = Match.new @tournament_id, 42, @list1_id
+        .then (res) =>
+            Match.finish res._id, @participant1_id, "Match Win"
+        .then (res) =>
+            Match.addList res.id, @list2_id
+
+        match.should.eventually.be.rejectedWith Error
