@@ -277,3 +277,16 @@ describe "Tournament", ->
                 }
             ]
             (row.value for row in rows).should.have.deep.members expected
+
+    it "cannot end before it starts", ->
+        now = parseInt((new Date()).getTime() / 1000)
+        tournament = Tournament.save
+            name: 'Test tournament 1'
+            description: 'First tournament description'
+            organizer_user_id: 'abc-123'
+            organizer_email: 'organizer@example.com'
+            event_start_timestamp: now
+            event_end_timestamp: now - 1
+
+        tournament.should.be.rejectedWith Error
+

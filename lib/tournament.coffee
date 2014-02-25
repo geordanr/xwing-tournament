@@ -1,3 +1,4 @@
+Q = require 'q'
 Doc = require './doc'
 
 _type = 'tournament'
@@ -11,11 +12,20 @@ _properties = [
 ]
 
 exports.save = (doc) ->
+    deferred = Q.defer()
+
     doc.event_start_timestamp = parseInt doc.event_start_timestamp
     doc.event_end_timestamp = parseInt doc.event_end_timestamp
-    throw "Start timestamp required" unless doc.event_start_timestamp?
-    throw "End timestamp required" unless doc.event_end_timestamp?
-    Doc.saveDoc doc, _type, _properties
+    try
+        throw new Error "Start timestamp required" unless doc.event_start_timestamp?
+        throw new Error "End timestamp required" unless doc.event_end_timestamp?
+        throw new Error "Tournament must end after it begins" unless doc.event_start_timestamp < doc.event_end_timestamp
+        deferred.resolve Doc.saveDoc doc, _type, _properties
+    catch err
+        deferred.reject err
+
+
+    deferred.promise
 
 exports.fetch = (id) ->
     Doc.fetchDoc id, _type
