@@ -4,6 +4,7 @@ passport = require 'passport'
 LocalStrategy = require('passport-local').Strategy
 
 Doc = require './lib/doc'
+Match = require './lib/match'
 Tournament = require './lib/tournament'
 User = require './lib/user'
 
@@ -111,9 +112,12 @@ app.get '/tournament/new', (req, res) ->
 # Protected API
 
 app.get '/api/tournament/:id', (req, res) ->
+    doc = {}
     Tournament.fetch req.params.id
     .then (tournament) ->
-        res.json { tournament: tournament }
+        doc.tournament = tournament
+    .then ->
+        res.json doc
 
 app.put '/api/tournament', (req, res) ->
     Tournament.save
@@ -125,6 +129,31 @@ app.put '/api/tournament', (req, res) ->
         organizer_user_id: req.user._id
     .then (r) ->
         res.redirect "/api/tournament/#{r.id}"
+    .fail (err) ->
+        throw err
+
+app.post '/api/tournament/:id', (req, res) ->
+    Tournament.fetch req.params.id
+    .then (tournament) ->
+        throw new Error "You are not the tournament organizer" unless req.user._id == tournament.organizer_user_id
+        tournament.name = req.body.name if req.body.name
+        tournament.event_start_timestamp = req.body.event_start_timestamp if req.body.event_start_timestamp
+        tournament.event_end_timestamp = req.body.event_end_timestamp if req.body.event_end_timestamp
+        tournament.description = req.body.description if req.body.description
+        tournament.organizer_email = req.body.organizer_email if req.body.organizer_email
+    .then (r) ->
+        res.redirect "/api/tournament/#{r.id}"
+    .fail (err) ->
+        throw err
+
+app.delete '/api/tournament/:id', (req, res) ->
+    throw new Error "Not yet implemented"
+
+
+app.get '/api/match/:id', (req, res) ->
+    Match.fetch req.params.id
+    .then (match) ->
+        res.json match
     .fail (err) ->
         throw err
 

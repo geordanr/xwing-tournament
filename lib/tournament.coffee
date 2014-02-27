@@ -1,5 +1,7 @@
 Q = require 'q'
 Doc = require './doc'
+Match = require './match'
+Participant = require './participant'
 
 _type = 'tournament'
 _properties = [
@@ -43,3 +45,19 @@ exports.getAll = (after=null) ->
 
 exports.getParticipants = (tournament_id) ->
     Doc.view 'tournament', 'participants', {startkey: [tournament_id], endkey: [tournament_id, {}]}
+    .then (rows) ->
+        Q.all(Participant.fetch(row.id) for row in rows)
+    .spread (participants...) ->
+        participants
+
+exports.getRounds = (tournament_id) ->
+    Doc.view 'round', 'byTournament', {group: true, key: tournament_id}
+    .then (rows) ->
+        rows[0].value[tournament_id]
+
+exports.getMatches = (tournament_id, round) ->
+    Doc.view 'match', 'byTournamentRound', {key: [tournament_id, round]}
+    .then (rows) ->
+        Q.all(Match.fetch(row.id) for row in rows)
+    .spread (matches...) ->
+        matches

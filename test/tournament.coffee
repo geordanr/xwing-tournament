@@ -6,6 +6,7 @@ uuid = require 'node-uuid'
 server = nano 'http://localhost:5984'
 
 Doc = require '../lib/doc'
+Match = require '../lib/match'
 Participant = require '../lib/participant'
 Tournament = require '../lib/tournament'
 User = require '../lib/user'
@@ -261,22 +262,89 @@ describe "Tournament", ->
                 Participant.enterTournament tournament_id, 'Dude 1', u1_id, 'participant1@example.com'
                 Participant.enterTournament tournament_id, 'Dude 2', u2_id, 'participant2@example.com'
             ]
-        .then ->
-            Tournament.getParticipants tournament_id
-        .then (rows) ->
-            expected = [
-                {
-                    name: 'Dude 1',
-                    user_id: u1_id
-                    participant_email: 'participant1@example.com'
-                }
-                {
-                    name: 'Dude 2',
-                    user_id: u2_id
-                    participant_email: 'participant2@example.com'
-                }
+        .spread (p1_res, p2_res) ->
+            Q.all [
+                Tournament.getParticipants tournament_id
+                Participant.fetch p1_res.id
+                Participant.fetch p2_res.id
             ]
-            (row.value for row in rows).should.have.deep.members expected
+        .spread (participants, p1, p2) ->
+            participants.should.have.deep.members [p1, p2]
+
+    it "lists the rounds", ->
+        tournament_id = null
+        user_ids = null
+        participant_ids = null
+        list_ids = null
+        match_ids = null
+
+        n_users = 4
+        n_lists_per_participant = 1
+        n_matches = 3
+
+        rounds = Tournament.save make_fake_tournament()
+        .then (res) ->
+            tournament_id = res.id
+            Q.all(User.save(make_fake_user()) for _ in [1..n_users])
+        .spread (user_results...) ->
+            user_ids = (res.id for res in user_results)
+            Q.all(Participant.enterTournament(tournament_id, "Entrant #{i}", user_ids[i-1], "participant#{i}@example.com") for i in [1..n_users])
+        .spread (participant_results...) ->
+            participant_ids = (res.id for res in participant_results)
+            Q.all(Participant.addList(participant_ids[i-1], [ { pilot: "Rookie Pilot", ship: "X-Wing", upgrades: [] } ], "http://example.com/#{i}") for i in [1..participant_ids.length])
+        .spread (list_results...) ->
+            list_ids = (res.id for res in list_results)
+            Q.all [
+                Match.new tournament_id, 1, list_ids[0], list_ids[1]
+                Match.new tournament_id, 1, list_ids[2], list_ids[3]
+                Match.new tournament_id, 2, list_ids[0], list_ids[3]
+            ]
+        .then ->
+            Tournament.getRounds tournament_id
+
+        rounds.should.eventually.have.members [1, 2]
+
+    it "lists the matches in a round", ->
+        tournament_id = null
+        user_ids = null
+        participant_ids = null
+        list_ids = null
+        match_ids = null
+
+        n_users = 4
+        n_lists_per_participant = 1
+        n_matches = 3
+
+        rounds = Tournament.save make_fake_tournament()
+        .then (res) ->
+            tournament_id = res.id
+            Q.all(User.save(make_fake_user()) for _ in [1..n_users])
+        .spread (user_results...) ->
+            user_ids = (res.id for res in user_results)
+            Q.all(Participant.enterTournament(tournament_id, "Entrant #{i}", user_ids[i-1], "participant#{i}@example.com") for i in [1..n_users])
+        .spread (participant_results...) ->
+            participant_ids = (res.id for res in participant_results)
+            Q.all(Participant.addList(participant_ids[i-1], [ { pilot: "Rookie Pilot", ship: "X-Wing", upgrades: [] } ], "http://example.com/#{i}") for i in [1..participant_ids.length])
+        .spread (list_results...) ->
+            list_ids = (res.id for res in list_results)
+            Q.all [
+                Match.new tournament_id, 1, list_ids[0], list_ids[1]
+                Match.new tournament_id, 1, list_ids[2], list_ids[3]
+                Match.new tournament_id, 2, list_ids[0], list_ids[3]
+            ]
+        .spread (match_results...) ->
+            Q.all(Match.fetch(res.id) for res in match_results)
+        .spread (matches...) ->
+            Q.all [
+                Tournament.getMatches tournament_id, 1
+                Tournament.getMatches tournament_id, 2
+                Q.fcall -> matches
+            ]
+        .spread (round1_matches, round2_matches, expected) ->
+            Q.all [
+                round1_matches.should.have.deep.members [ expected[0], expected[1] ]
+                round2_matches.should.have.deep.members [ expected[2] ]
+            ]
 
     it "cannot end before it starts", ->
         now = parseInt((new Date()).getTime() / 1000)

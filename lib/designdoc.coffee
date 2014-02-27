@@ -52,6 +52,33 @@ design_docs =
                                 url: doc.url
                 '''
 
+    'round':
+        language: 'coffeescript'
+        views:
+            byTournament:
+                map: '''
+                    (doc) ->
+                        if doc.type == 'match'
+                            emit doc.tournament_id, doc.round
+                '''
+                reduce: '''
+                    (keys, values, rereduce) ->
+                        tourneys = {}
+                        if rereduce
+                            for value of values
+                                for tournament_id, rounds of value
+                                    tourneys[tournament_id] ?= []
+                                    for round in rounds
+                                        tourneys[tournament_id].push round if round not in tourneys[tournament_id]
+                        else
+                            for [tournament_id, doc_id], i in keys
+                                tourneys[tournament_id] ?= []
+                                tourneys[tournament_id].push values[i] if values[i] not in tourneys[tournament_id]
+                        for tournament_id, rounds of tourneys
+                            tourneys[tournament_id] = rounds.sort()
+                        tourneys
+                '''
+
     'match':
         language: 'coffeescript'
         views:
