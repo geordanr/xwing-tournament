@@ -111,6 +111,21 @@ app.get '/tournament/new', (req, res) ->
 
 # Protected API
 
+app.post '/api/user/:id', (req, res) ->
+    User.fetch req.params.id
+    .then (user) ->
+        user.email = req.body.email if req.body.email?
+        User.save user
+    .fail (err) ->
+        throw err
+
+app.get '/api/user/:id/tournamentsCreated', (req, res) ->
+    throw new Error "Not yet implemented"
+
+app.get '/api/user/:id/tournamentsEntered', (req, res) ->
+    throw new Error "Not yet implemented"
+
+
 app.get '/api/tournament/:id', (req, res) ->
     doc = {}
     Tournament.fetch req.params.id
@@ -149,11 +164,32 @@ app.post '/api/tournament/:id', (req, res) ->
 app.delete '/api/tournament/:id', (req, res) ->
     throw new Error "Not yet implemented"
 
+app.get '/api/tournament/:id/rounds', (req, res) ->
+    Tournament.getRounds id
+    .then (rounds) ->
+        res.json rounds
+    .fail (err) ->
+        throw err
+
+app.get '/api/tournament/:id/matches/:round', (req, res) ->
+    Tournament.getMatches id, round
+    .then (matches) ->
+        res.json matches
+    .fail (err) ->
+        throw err
+
 
 app.get '/api/match/:id', (req, res) ->
     Match.fetch req.params.id
     .then (match) ->
         res.json match
+    .fail (err) ->
+        throw err
+
+app.put '/api/match', (req, res) ->
+    Match.new req.body.tournament_id, req.body.round, req.body.list1_id, req.body_list2_id
+    .then (res) ->
+        res.redirect "/api/match/#{res.id}"
     .fail (err) ->
         throw err
 
