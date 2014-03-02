@@ -19,6 +19,7 @@ exports.save = (doc) ->
     doc.event_start_timestamp = parseInt doc.event_start_timestamp
     doc.event_end_timestamp = parseInt doc.event_end_timestamp
     try
+        throw new Error "Name required" unless doc.name
         throw new Error "Start timestamp required" unless doc.event_start_timestamp?
         throw new Error "End timestamp required" unless doc.event_end_timestamp?
         throw new Error "Tournament must end after it begins" unless doc.event_start_timestamp < doc.event_end_timestamp

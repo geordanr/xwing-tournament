@@ -4,6 +4,7 @@
     "version": "0.0.1",
     "private": "true",
     "dependencies": {
+        "casperjs": "1.1.x",
         "chai": "1.9.x",
         "chai-as-promised": "4.1.x",
         "coffee-script": "1.7.x",
@@ -19,6 +20,6 @@
         "uglify-js": "2.4.x"
     },
     "scripts": {
-        "test": "mocha --compilers coffee:coffee-script/register --require test/setup --reporter spec"
+        "test": "make test"
     }
 }
