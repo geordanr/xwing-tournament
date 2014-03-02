@@ -158,26 +158,24 @@ app.post '/api/tournament/:id', (req, res) ->
         tournament.organizer_email = req.body.organizer_email if req.body.organizer_email
         Tournament.save tournament
     .then (r) ->
-        console.dir r
         res.redirect "/api/tournament/#{r.id}"
     .fail (err) ->
-        console.error err
         throw err
 
 app.delete '/api/tournament/:id', (req, res) ->
     throw new Error "Not yet implemented"
 
 app.get '/api/tournament/:id/rounds', (req, res) ->
-    Tournament.getRounds id
+    Tournament.getRounds req.params.id
     .then (rounds) ->
-        res.json rounds
+        res.json {rounds: rounds}
     .fail (err) ->
         throw err
 
 app.get '/api/tournament/:id/matches/:round', (req, res) ->
     Tournament.getMatches id, round
     .then (matches) ->
-        res.json matches
+        res.json {matches: matches}
     .fail (err) ->
         throw err
 

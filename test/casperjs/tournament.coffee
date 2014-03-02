@@ -7,6 +7,8 @@ dbname = "http://localhost:5984/xwing-tournament-test-server-#{uuid.v4()}"
 SERVER_STARTUP_MSEC = 1500
 URL_ROOT = 'http://localhost:3000'
 
+casper.options.stepTimeout = 5000
+
 casper.test.setUp ->
     express_proc = spawn 'env', [ "COUCHDB_URL=#{dbname}", 'coffee', 'server.coffee' ]
     express_proc.stdout.on 'data', (data) ->
@@ -41,6 +43,22 @@ casper.test.begin 'Functional test', (test) ->
             oauth_strategy: 'google'
             oauth_id: '1234'
             email: 'google1234@example.com'
+
+    .thenOpen "#{dbname}/user0",
+        method: 'put'
+        data: JSON.stringify
+            type: 'user'
+            oauth_strategy: 'google'
+            oauth_id: '2222'
+            email: 'google2222@example.com'
+
+    .thenOpen "#{dbname}/user1",
+        method: 'put'
+        data: JSON.stringify
+            type: 'user'
+            oauth_strategy: 'google'
+            oauth_id: '3333'
+            email: 'google3333@example.com'
 
     .thenOpen "#{URL_ROOT}/login", ->
         @fill 'form',
@@ -109,13 +127,61 @@ casper.test.begin 'Functional test', (test) ->
                 event_end_timestamp: 3000
                 description: "Updated tournament description"
                 organizer_email: "new@example.com"
-        , ->
-            parsedContent = JSON.parse @getPageContent()
-            test.assertEqual parsedContent.tournament.name, 'Updated tournament', 'Tournament name updated'
-            test.assertEqual parsedContent.tournament.event_start_timestamp, 2000, 'Tournament start time updated'
-            test.assertEqual parsedContent.tournament.event_end_timestamp, 3000, 'Tournament end time updated'
-            test.assertEqual parsedContent.tournament.description, 'Updated tournament description', 'Tournament description updated'
-            test.assertEqual parsedContent.tournament.organizer_email, 'new@example.com', 'Tournament organizer email updated'
+    .then ->
+        parsedContent = JSON.parse @getPageContent()
+        test.assertEqual parsedContent.tournament.name, 'Updated tournament', 'Tournament name updated'
+        test.assertEqual parsedContent.tournament.event_start_timestamp, 2000, 'Tournament start time updated'
+        test.assertEqual parsedContent.tournament.event_end_timestamp, 3000, 'Tournament end time updated'
+        test.assertEqual parsedContent.tournament.description, 'Updated tournament description', 'Tournament description updated'
+        test.assertEqual parsedContent.tournament.organizer_email, 'new@example.com', 'Tournament organizer email updated'
+
+    .then ->
+        @open "#{URL_ROOT}/api/tournament/#{@_tournament_id}/rounds",
+            headers:
+                Accept: 'application/json'
+    .then ->
+        parsedContent = JSON.parse @getPageContent()
+        test.assertEqual parsedContent, {rounds: []}, 'No rounds in newly created tournament'
+
+    .thenOpen "#{URL_ROOT}/login", ->
+        @fill 'form',
+            username: '2222'
+            password: 'google'
+        , true
+
+    .then ->
+        @open "#{URL_ROOT}/api/enterTournament/#{@_tournament_id}",
+            method: 'post'
+            headers:
+                Accept: 'application/json'
+            data:
+                name: "Participant 1"
+    .then (resp) ->
+        test.assertEqual resp.status, 200
+        parsedContent = JSON.parse @getPageContent()
+        test.assert '_id' of parsedContent.participant, "Participant created and returned"
+        @_p1_id = parsedContent.participant._id
+
+    .then ->
+        @open "#{URL_ROOT}/api/registerList/#{@_p1_id}",
+            method: 'post'
+            headers:
+                Accept: 'application/json'
+#            data:
+#                ships: [
+#                   {
+#                       pilot: "Rookie Pilot"
+#                       ship: "X-Wing"
+#                       upgrades: []
+#                   }
+#               ]
+#               url: 'http://example.com/list1'
+    .then (resp) ->
+        test.assertEqual resp.status, 200
+#    .then ->
+#        parsedContent = JSON.parse @getPageContent()
+#        test.assert('_id' of parsedContent.participant, "Participant created and returned"
+#        @_p1_id = parsedContent.participant._id
 
     .run ->
         test.done()

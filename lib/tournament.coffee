@@ -54,7 +54,10 @@ exports.getParticipants = (tournament_id) ->
 exports.getRounds = (tournament_id) ->
     Doc.view 'round', 'byTournament', {group: true, key: tournament_id}
     .then (rows) ->
-        rows[0].value[tournament_id]
+        if rows.length > 0
+            rows[0].value[tournament_id]
+        else
+            []
 
 exports.getMatches = (tournament_id, round) ->
     Doc.view 'match', 'byTournamentRound', {key: [tournament_id, round]}
