@@ -140,7 +140,7 @@ app.put '/api/tournament', (req, res) ->
         event_start_timestamp: req.body.event_start_timestamp
         event_end_timestamp: req.body.event_end_timestamp
         description: req.body.description
-        organizer_email: req.body.organizer_email
+        organizer_email: req.body.organizer_email ? req.user.email
         organizer_user_id: req.user._id
     .then (r) ->
         res.redirect "/api/tournament/#{r.id}"
@@ -156,9 +156,12 @@ app.post '/api/tournament/:id', (req, res) ->
         tournament.event_end_timestamp = req.body.event_end_timestamp if req.body.event_end_timestamp
         tournament.description = req.body.description if req.body.description
         tournament.organizer_email = req.body.organizer_email if req.body.organizer_email
+        Tournament.save tournament
     .then (r) ->
+        console.dir r
         res.redirect "/api/tournament/#{r.id}"
     .fail (err) ->
+        console.error err
         throw err
 
 app.delete '/api/tournament/:id', (req, res) ->
